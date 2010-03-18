@@ -8,14 +8,15 @@ function listAttributes(pre,x) {
 }
 
 function listProperties(pre,x) {
-  message('// ------------- listing properties for '+pre);
+  message('// ----start---- listing properties for '+pre);
   for (var key in x) {
     p = x[key];
     if (p && (typeof p != "function"))
-      message(pre+key+"("+typeof p+") : "+p);
+      message(pre+'.'+key+"("+typeof p+") : "+p);
     if (p && p.value)
-      message("// "+pre+key+".value : "+p.value);
+      message("// "+pre+'.'+key+".value : "+p.value);
   }
+  message('// ----end------ listing properties for '+pre);
 }
 
 function message(msg) {

@@ -1,7 +1,45 @@
-function Place(id,pos) {
-  this.id   = id;
-  this.pos  = pos;
-  this.arcs = [];
+function Place(net,id,pos) {
+  this.net     = net;
+  this.id      = id;
+  this.pos     = pos;
+  this.arcsIn  = [];
+  this.arcsOut = [];
+  this.addView();
+}
+Place.prototype.addView = function () {
+  // TODO: group node and label, use relative position for latter
+  this.p = document.createElementNS(this.net.svgNS,'circle');
+  this.p.setAttribute('class','place');
+  this.p.id = this.id;
+  this.p.place = this;
+  this.p.setAttribute('cx',this.pos.x); 
+  this.p.setAttribute('cy',this.pos.y); 
+  this.p.setAttribute('r',this.net.r);
+  this.p.style.stroke = 'black';
+  this.p.style.fill = 'white';
+  this.p.setAttribute('onclick','this.place.clickHandler(event)');
+  this.p.setAttribute('onmousedown','this.place.mousedownHandler(event)');
+  this.p.setAttribute('onmouseup','this.place.mouseupHandler(event)');
+  this.addLabel(this.pos.x+this.net.r,this.pos.y+this.net.r);
+}
+Place.prototype.addLabel = function (x,y) {
+  this.l = document.createElementNS(this.net.svgNS,'text');
+  this.l.setAttribute('class','label');
+  this.l.setAttribute('stroke','red');
+  this.l.setAttribute('stroke-width','1');
+  this.l.setAttribute('font-size','200');
+  this.l.setAttribute('x',x);
+  this.l.setAttribute('y',y);
+  this.l.appendChild(document.createTextNode(this.id));
+  this.net.svg.appendChild(this.l);
+}
+Place.prototype.updateView = function() {
+  this.p.id = this.id;
+  this.p.setAttribute('cx',this.pos.x); 
+  this.p.setAttribute('cy',this.pos.y); 
+  this.p.setAttribute('r',this.net.r);
+  this.l.setAttribute('x',this.pos.x+this.net.r);
+  this.l.setAttribute('y',this.pos.y+this.net.r);
 }
 Place.prototype.toString = function() {
   return 'Place('+this.id+','+this.pos+')';
@@ -14,24 +52,96 @@ Place.prototype.connectorFor = function(pos) {
 }
 Place.prototype.clickHandler = function(event) {
   message("clicked "+this.id);
-  document.getElementById(this.id).setAttribute("fill","black");
 }
-Place.prototype.registerArc = function(arc) {
-  this.arcs.push(arc);
+Place.prototype.mousedownHandler = function(event) {
+  var place = document.getElementById(this.id);
+  place.style.stroke = 'green';
+  // redirect whole-svg events 
+  // if mouse is faster than rendering, events might not hit small shapes
+  this.net.selection = this;
+  this.net.svg.setAttribute('onmousemove','this.net.selection.mousemoveHandler(event)');
+  this.net.svg.setAttribute('onmouseup','this.net.selection.mousemoveHandler(event)');
+}
+Place.prototype.mousemoveHandler = function(event) {
+  var p = this.net.client2canvas(event);
+  this.pos = new Pos(p.x,p.y);
+  this.updateView();
+  for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
+  for (var aout in this.arcsOut) this.arcsOut[aout].updateView();
+}
+Place.prototype.mouseupHandler = function(event) {
+  var place = document.getElementById(this.id);
+  place.style.stroke = 'black';
+  this.net.selection = null;
+  this.net.svg.setAttribute('onmousemove','');
+  this.net.svg.setAttribute('onmouseup','');
+}
+Place.prototype.registerArcAtSource = function(arc) {
+  this.arcsOut.push(arc);
+}
+Place.prototype.registerArcAtTarget = function(arc) {
+  this.arcsIn.push(arc);
 }
 
-function Transition(id,pos) {
-  this.id   = id;
-  this.pos  = pos;
-  this.arcs = [];
+function Transition(net,id,pos) {
+  this.net     = net;
+  this.id      = id;
+  this.pos     = pos;
+  this.arcsIn  = [];
+  this.arcsOut = [];
+  this.addView();
+}
+Transition.prototype.addView = function () {
+  // TODO: group node and label, use relative position for latter
+  var x2 = this.pos.x - this.net.width/2;
+  var y2 = this.pos.y - this.net.height/2;
+  this.t = document.createElementNS(this.net.svgNS,'rect');
+  this.t.setAttribute('class','transition');
+  this.t.id = this.id;
+  this.t.transition = this;
+  this.t.setAttribute('x',x2); 
+  this.t.setAttribute('y',y2); 
+  this.t.setAttribute('width',this.net.width);
+  this.t.setAttribute('height',this.net.height);
+  this.t.style.stroke = 'black';
+  this.t.style.fill = 'darkgrey';
+  this.t.setAttribute('onclick','this.transition.clickHandler(event)');
+  this.t.setAttribute('onmousedown','this.transition.mousedownHandler(event)');
+  this.t.setAttribute('onmouseup','this.transition.mouseupHandler(event)');
+  this.addLabel(x2+2*this.net.width,y2+this.net.height);
+}
+Transition.prototype.addLabel = function (x,y) {
+  this.l = document.createElementNS(this.net.svgNS,'text');
+  this.l.setAttribute('class','label');
+  this.l.setAttribute('stroke','red');
+  this.l.setAttribute('stroke-width','1');
+  this.l.setAttribute('font-size','200');
+  this.l.setAttribute('x',x);
+  this.l.setAttribute('y',y);
+  this.l.appendChild(document.createTextNode(this.id));
+  this.net.svg.appendChild(this.l);
+}
+Transition.prototype.updateView = function() {
+  var x2 = this.pos.x - this.net.width/2;
+  var y2 = this.pos.y - this.net.height/2;
+  this.t.id = this.id;
+  this.t.setAttribute('x',x2); 
+  this.t.setAttribute('y',y2); 
+  this.t.setAttribute('width',this.net.width);
+  this.t.setAttribute('height',this.net.height);
+  this.l.setAttribute('x',x2+2*this.net.width);
+  this.l.setAttribute('y',y2+this.net.height);
 }
 Transition.prototype.toString = function() {
   return 'Transition('+this.id+','+this.pos+')';
 }
 // nearest point on transition border
+// (middle of top,bottom,left,right border)
+// TODO: spread out connectors on the sides (need to find a scale
+//        that ensures connectors stay within the range of the border)
 Transition.prototype.connectorFor = function(pos) {
   var w = Net.prototype.width/2;
-  var h = Net.prototype.height;
+  var h = Net.prototype.height/2;
   var x = this.pos.x;
   var y = this.pos.y;
   return ( pos.x-x > w
@@ -42,17 +152,59 @@ Transition.prototype.connectorFor = function(pos) {
              ? new Pos(x,y+h)
              : new Pos(x,y-h));
 }
+// TODO: slim shapes are hard to hit, perhaps add a transparent halo?
 Transition.prototype.clickHandler = function(event) {
-  message("clicked "+this.id);
-  document.getElementById(this.id).setAttribute("fill","black");
+  message('clicked '+this.id);
 }
-Transition.prototype.registerArc = function(arc) {
-  this.arcs.push(arc);
+Transition.prototype.mousedownHandler = function(event) {
+  var transition = document.getElementById(this.id);
+  transition.style.stroke = 'green';
+  // redirect whole-svg events 
+  // if mouse is faster than rendering, events might not hit small shapes
+  this.net.selection = this;
+  this.net.svg.setAttribute('onmousemove','this.net.selection.mousemoveHandler(event)');
+  this.net.svg.setAttribute('onmouseup','this.net.selection.mousemoveHandler(event)');
+}
+Transition.prototype.mousemoveHandler = function(event) {
+  var p = this.net.client2canvas(event);
+  this.pos = new Pos(p.x,p.y);
+  this.updateView();
+  for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
+  for (var aout in this.arcsOut) this.arcsOut[aout].updateView();
+}
+Transition.prototype.mouseupHandler = function(event) {
+  var transition = document.getElementById(this.id);
+  transition.style.stroke = 'black';
+  this.net.selection = null;
+  this.net.svg.setAttribute('onmousemove','');
+  this.net.svg.setAttribute('onmouseup','');
+}
+Transition.prototype.registerArcAtSource = function(arc) {
+  this.arcsOut.push(arc);
+}
+Transition.prototype.registerArcAtTarget = function(arc) {
+  this.arcsIn.push(arc);
 }
 
 function Arc(source,target) {
   this.source = source;
   this.target = target;
+
+  this.a = document.createElementNS(this.source.net.svgNS,'path');
+  this.a.arc = this;
+  this.a.setAttribute('class','arc');
+  this.a.setAttribute('onclick','this.arc.clickHandler(event)');
+  this.updateView();
+}
+Arc.prototype.updateView = function() {
+  var sourceCon = this.source.connectorFor(this.target.pos);
+  var targetCon = this.target.connectorFor(this.source.pos);
+
+  this.a.setAttribute('d','M '+sourceCon.x+' '+sourceCon.y
+                         +'L '+targetCon.x+' '+targetCon.y);
+}
+Arc.prototype.toString = function() {
+  return this.source+'->'+this.target;
 }
 Arc.prototype.clickHandler = function(event) {
   message("clicked "+this.source.id+'->'+this.target.id);
@@ -66,27 +218,31 @@ function Net(id) {
   this.svg.setAttribute('width','10cm');
   this.svg.setAttribute('height','10cm');
   this.svg.setAttribute('viewBox','0 0 5000 3000');
-  // this.svg.setAttribute('preserveAspectRatio','none');
   this.svg.style.backgroundColor = 'lightgrey';
   this.svg.style.margin = '10px';
 
   var defs   = document.createElementNS(this.svgNS,'defs');
-  var marker = this.getMarker();
+  var marker = this.defineMarker();
   defs.appendChild(marker);
   this.svg.appendChild(defs);
 
   this.svg.net = this;
   this.clicks = 0;
   // this.svg.setAttribute('onclick','this.net.clickHandler(event)');
+  this.svg.setAttribute('onkeypress','this.net.keypressHandler(event)');
+  this.svg.addEventListener('keypress','alert("hi")');
+
+  this.places      = [];
+  this.transitions = [];
+  this.arcs        = [];
+  this.selection   = null;
 }
 
 Net.prototype.svgNS = 'http://www.w3.org/2000/svg';
 Net.prototype.r           = 400;
+// TODO: asymmetric transition shape calls for rotation ability
 Net.prototype.width       = Net.prototype.r/10;
 Net.prototype.height      = 2*Net.prototype.r;
-Net.prototype.places      = [];
-Net.prototype.transitions = [];
-Net.prototype.arcs        = [];
 Net.prototype.toString = function() {
   var r = '';
   r += this.svg.id+"\n";
@@ -100,7 +256,7 @@ Net.prototype.toString = function() {
   return r;
 }
 
-Net.prototype.getMarker = function () {
+Net.prototype.defineMarker = function () {
   var marker = document.createElementNS(this.svgNS,'marker');
   marker.id = "Arrow";
   marker.setAttribute('viewBox','0 0 10 10');
@@ -134,16 +290,11 @@ Net.prototype.clickHandler = function (event) {
     this.addTransition('CLICK'+this.clicks,p.x,p.y);
 }
 
-Net.prototype.addLabel = function (id,x,y) {
-  var l = document.createElementNS(this.svgNS,'text');
-  l.setAttribute('class','label');
-  l.setAttribute('stroke','red');
-  l.setAttribute('stroke-width','1');
-  l.setAttribute('font-size','200');
-  l.setAttribute('x',x);
-  l.setAttribute('y',y);
-  l.appendChild(document.createTextNode(id));
-  this.svg.appendChild(l);
+Net.prototype.keypressHandler = function (event) {
+  message('keypressHandler ');
+  listProperties('event',event);
+  var p = this.client2canvas(event);
+  this.addPlace('CLICK'+this.clicks,p.x,p.y);
 }
 
 Net.prototype.addArc = function (source,target) {
@@ -152,62 +303,22 @@ Net.prototype.addArc = function (source,target) {
 
     var arc = new Arc(source,target);
     this.arcs.push(arc);
-    source.registerArc(arc);
-    target.registerArc(arc);
-
-    var sourceCon = source.connectorFor(target.pos);
-    var targetCon = target.connectorFor(source.pos);
-
-    arc.a = document.createElementNS(this.svgNS,'path');
-    arc.a.arc = arc;
-    arc.a.setAttribute('class','arc');
-    arc.a.setAttribute('d','M '+sourceCon.x+' '+sourceCon.y
-                        +'L '+targetCon.x+' '+targetCon.y);
-    arc.a.setAttribute('onclick','this.arc.clickHandler(event)');
-
+    source.registerArcAtSource(arc);
+    target.registerArcAtTarget(arc);
     this.svg.appendChild(arc.a);
   }
 }
 
 Net.prototype.addPlace = function (id,x,y) {
-  var place = new Place(id,new Pos(x,y));
+  var place = new Place(this,id,new Pos(x,y));
   this.places[id] = place;
-  this.addLabel(id,x+this.r,y+this.r);
-
-  var p = document.createElementNS(this.svgNS,'circle');
-  p.setAttribute('class','place');
-  p.id = id;
-  p.place = place;
-  p.setAttribute('cx',x); 
-  p.setAttribute('cy',y); 
-  p.setAttribute('r',this.r);
-  p.style.stroke = 'black';
-  p.style.fill = 'white';
-  p.setAttribute('onclick','this.place.clickHandler(event)');
-  this.svg.appendChild(p);
-  
+  this.svg.appendChild(place.p);
   return place;
 }
 
 Net.prototype.addTransition = function (id,x,y) {
-  var transition = new Transition(id,new Pos(x,y));
+  var transition = new Transition(this,id,new Pos(x,y));
   this.transitions[id] = transition;
-  var x2 = x - this.width/2, y2 = y - this.height/2;
-
-  this.addLabel(id,x2+2*this.width,y2+this.height);
-
-  var t = document.createElementNS(this.svgNS,'rect');
-  t.setAttribute('class','transition');
-  t.id = id;
-  t.transition = transition;
-  t.setAttribute('x',x2); 
-  t.setAttribute('y',y2); 
-  t.setAttribute('width',this.width);
-  t.setAttribute('height',this.height);
-  t.style.stroke = 'black';
-  t.style.fill = 'darkgrey';
-  t.setAttribute('onclick','this.transition.clickHandler(event)');
-  this.svg.appendChild(t);
-
+  this.svg.appendChild(transition.t);
   return transition;
 }
