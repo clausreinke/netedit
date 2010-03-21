@@ -20,16 +20,16 @@
                fill: none;
                marker-end: url(#Arrow) }
 
-div#console  { float: left; margin: 10px; border: solid 1px blue; 
-               height: 10cm; overflow: scroll }
+svg          { float: left }
+.netHelp     { float: right }
 div#messages { clear: both; margin: 10px; border: solid 1px blue; 
                height: 10em; overflow: scroll }
 </style>
 
-<script src="debug.js"/>
-<script src="vector.js"/>
-<script src="net.js"/>
-<script><![CDATA[
+<script type="text/javascript" src="debug.js"/>
+<script type="text/javascript" src="vector.js"/>
+<script type="text/javascript" src="net.js"/>
+<script type="text/javascript">
 function initNet() {
   var net  = new Net('net');
   var in1  = net.addPlace('in1' , 1000, 1000);
@@ -43,14 +43,15 @@ function initNet() {
   net.addArc(t1,out1);
   net.addArc(t1,out2);
 
+  document.body.insertBefore(net.help,document.body.firstChild);
   document.body.insertBefore(net.svg,document.body.firstChild);
   // listProperties('net.svg.',net.svg);
 
   var ls = net.toString().split("\n");
-  for (l in ls) message(ls[l]);
+  for (var l in ls) message(ls[l]);
+
 }
 
-]]>
 </script>
 
 </head>
