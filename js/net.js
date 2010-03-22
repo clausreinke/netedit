@@ -11,8 +11,9 @@ function bind(f,x) {
 // so we regroup the properties into a single setAttribute
 // TODO: what does the standard say?
 function patchStyle(x) {
-  var s = ['stroke','fill','cursor'].map(function(val){return val+': '+x.style[val];})
-                                    .join('; ');
+  var s = ['stroke','fill','cursor','display'].map(function(val){
+    return x.style[val] ? val+': '+x.style[val] : '';
+    }).join('; ');
   x.setAttribute('style',s);
 }
 
@@ -254,6 +255,55 @@ Arc.prototype.clickHandler = function(event) {
   message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
 }
 
+function Cursor() {
+  var svgNS   = Net.prototype.svgNS;
+  var tWidth  = Net.prototype.transitionWidth/5;
+  var tHeight = Net.prototype.transitionHeight/5;
+  var r       = Net.prototype.r/5;
+
+  this.palette      = document.createElementNS(svgNS,'g');
+
+  this.transition  = document.createElementNS(svgNS,'rect');
+  this.transition.id = 'transitionCursor';
+  this.transition.setAttribute('width',tWidth);
+  this.transition.setAttribute('height',tHeight);
+  this.transition.setAttribute('x',100-tWidth);
+  this.transition.setAttribute('y',-100-tHeight);
+  this.transition.style.stroke  = 'black';
+  this.transition.style.fill    = 'darkgrey';
+  this.transition.style.display = 'none';
+  patchStyle(this.transition);
+  this.palette.appendChild(this.transition);
+
+  this.place  = document.createElementNS(svgNS,'circle');
+  this.place.id = 'placeCursor';
+  this.place.setAttribute('cx',100);
+  this.place.setAttribute('cy',-100);
+  this.place.setAttribute('r',r);
+  this.place.style.stroke  = 'black';
+  this.place.style.fill    = 'white';
+  this.place.style.display = 'none';
+  patchStyle(this.place);
+  this.palette.appendChild(this.place);
+}
+// TODO: this patching is getting ridiculous
+Cursor.prototype.hideAll = function () {
+    this.transition.style.display = 'none'; 
+    patchStyle(this.transition);
+    this.place.style.display = 'none'; 
+    patchStyle(this.place);
+}
+Cursor.prototype.transitionCursor = function () {
+  this.hideAll();
+  this.transition.style.display = 'inline';
+  patchStyle(this.transition);
+}
+Cursor.prototype.placeCursor = function () {
+  this.hideAll();
+  this.place.style.display = 'inline';
+  patchStyle(this.place);
+}
+
 function Net(id) {
 
   this.svg = document.createElementNS(this.svgNS,'svg');
@@ -269,8 +319,9 @@ function Net(id) {
   // so we provide a dummy backdrop (this doesn't seem needed in firefox?)
   // TODO: does the standard say anything about this?
   this.svgBackdrop = document.createElementNS(this.svgNS,'rect');
-    this.svgBackdrop.id = 'transitionCursor';
-    this.svgBackdrop.setAttribute('width',5000); // TODO: read svg viewport spec again
+    this.svgBackdrop.id = 'svgBackdrop';
+    // TODO: read svg viewport spec again, viewBox, viewport and aspect..
+    this.svgBackdrop.setAttribute('width',5000); 
     this.svgBackdrop.setAttribute('height',3000);
     this.svgBackdrop.setAttribute('x',0);
     this.svgBackdrop.setAttribute('y',0);
@@ -290,30 +341,8 @@ function Net(id) {
   defs.appendChild(marker);
   this.svg.appendChild(defs);
 
-  this.cursor      = document.createElementNS(this.svgNS,'g');
-
-    var transitionCursor  = document.createElementNS(this.svgNS,'rect');
-    transitionCursor.id = 'transitionCursor';
-    transitionCursor.setAttribute('width',this.transitionWidth/5);
-    transitionCursor.setAttribute('height',this.transitionHeight/5);
-    transitionCursor.setAttribute('x',100-this.transitionWidth/10);
-    transitionCursor.setAttribute('y',-100-this.transitionHeight/10);
-    transitionCursor.style.stroke  = 'black';
-    transitionCursor.style.fill    = 'darkgrey';
-    transitionCursor.style.display = 'none';
-    this.cursor.appendChild(transitionCursor);
-
-    var placeCursor  = document.createElementNS(this.svgNS,'circle');
-    placeCursor.id = 'placeCursor';
-    placeCursor.setAttribute('cx',100);
-    placeCursor.setAttribute('cy',-100);
-    placeCursor.setAttribute('r',this.r/5);
-    placeCursor.style.stroke  = 'black';
-    placeCursor.style.fill    = 'white';
-    placeCursor.style.display = 'none';
-    this.cursor.appendChild(placeCursor);
-
-  this.svg.appendChild(this.cursor);
+  this.cursor      = new Cursor();
+  this.svg.appendChild(this.cursor.palette);
 
   this.svg.net = this;
   this.clicks = 0;
@@ -422,23 +451,23 @@ Net.prototype.addTransition = function (id,x,y) {
 // seems we can only listen for keys outside svg
 // we only set an insertType for use in later click events 
 Net.prototype.keypressHandler = function (event) {
-  this.insertType = String.fromCharCode(event.keyCode);
-  message('Net.keypressHandler '+this.insertType+' '+event.keyCode);
+  // TODO: spec says charCode if printable, keyCode otherwise;
+  //       opera 10.10 always seems to use keyCode, firefox follows spec?
+  var key = event.charCode || event.keyCode;
+  this.insertType = String.fromCharCode(key);
+  message('Net.keypressHandler '+this.insertType+' '+event.charCode+'/'+event.keyCode);
   if (this.insertType==='t') {
-    this.cursor.firstChild.style.display = 'inline';
-    this.cursor.lastChild.style.display = 'none';
+    this.cursor.transitionCursor();
   } else if (this.insertType==='p') {
-    this.cursor.firstChild.style.display = 'none';
-    this.cursor.lastChild.style.display = 'inline';
+    this.cursor.placeCursor();
   } else {
-    this.cursor.firstChild.style.display = 'none';
-    this.cursor.lastChild.style.display = 'none';
+    this.cursor.hideAll();
   }
 }
 
 Net.prototype.mousemoveHandler = function (event) {
   var p = this.client2canvas(event);
-  message('Net.mousemoveHandler '+p);
-  this.cursor.setAttribute('transform','translate('+p.x+','+p.y+')');
+  // message('Net.mousemoveHandler '+p);
+  this.cursor.palette.setAttribute('transform','translate('+p.x+','+p.y+')');
 }
 
