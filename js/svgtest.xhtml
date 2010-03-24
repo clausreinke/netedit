@@ -9,19 +9,12 @@
 <head>
 
 <style type="text/css">
-*.place      { stroke: black;
-               stroke-width: 10px;
-               fill: none }
-*.transition { stroke: black;
-               stroke-width: 10px;
-               fill: none }
-*.arc        { stroke: black;
-               stroke-width: 10px;
-               fill: none;
-               marker-end: url(#Arrow) }
+*.place      { stroke-width: 10px }
+*.transition { stroke-width: 10px }
+*.arc        { stroke-width: 10px; marker-end: url(#Arrow) }
 
-svg          { float: left }
-.netHelp     { float: right }
+svg          {  }
+.netHelp     {  }
 div#messages { clear: both; margin: 10px; border: solid 1px blue; 
                height: 10em; overflow: scroll }
 </style>
@@ -43,8 +36,8 @@ function initNet() {
   net.addArc(t1,out1);
   net.addArc(t1,out2);
 
-  document.body.insertBefore(net.help,document.body.firstChild);
   document.body.insertBefore(net.svg,document.body.firstChild);
+  document.body.insertBefore(net.help,document.body.firstChild);
   // listProperties('net.svg.',net.svg);
 
   var ls = net.toString().split("\n");

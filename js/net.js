@@ -7,14 +7,20 @@ function bind(f,x) {
 
 // opera does sequences of style.property=blah setters just fine;
 // firefox keeps the properties in the javascript object, 
-// but uses only the last one for actual css styling, 
+// but uses only the last one set for actual css styling, 
 // so we regroup the properties into a single setAttribute
-// TODO: what does the standard say?
 function patchStyle(x) {
-  var s = ['stroke','fill','cursor','display'].map(function(val){
-    return x.style[val] ? val+': '+x.style[val] : '';
-    }).join('; ');
-  x.setAttribute('style',s);
+  var cssvals = ['stroke','stroke-width','fill','cursor','display'];
+  var jsvals  = ['stroke','strokeWidth','fill','cursor','display'];
+  var style   = [];
+  for (var i in cssvals) {
+    var cssval = cssvals[i];
+    var jsval  = jsvals[i];
+    if (x.style[jsval])
+    style.push(cssval+': '+x.style[jsval]);
+  }
+  // message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
+  x.setAttribute('style',style.join('; '));
 }
 
 function Place(net,id,pos) {
@@ -27,22 +33,22 @@ function Place(net,id,pos) {
 }
 Place.prototype.addView = function () {
   // TODO: group node and label, use relative position for latter
-  this.p = this.placeShape();
+  this.p = this.placeShape(this.pos.x,this.pos.y,this.net.r);
   this.p.id = this.id;
   this.p.place = this;
-  this.p.setAttribute('cx',this.pos.x); 
-  this.p.setAttribute('cy',this.pos.y); 
-  this.p.style.cursor = 'move';
+  // this.p.style.cursor = 'move';
   patchStyle(this.p);
   this.p.addEventListener('click',bind(this.clickHandler,this),false);
   this.p.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
   this.p.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
   this.addLabel(this.pos.x+this.net.r,this.pos.y+this.net.r);
 }
-Place.prototype.placeShape = function () {
-  var shape = document.createElementNS(this.net.svgNS,'circle');
+Place.prototype.placeShape = function (x,y,r) {
+  var shape = document.createElementNS(Net.prototype.svgNS,'circle');
   shape.setAttribute('class','place');
-  shape.setAttribute('r',this.net.r);
+  shape.setAttribute('cx',x); 
+  shape.setAttribute('cy',y); 
+  shape.setAttribute('r',r);
   shape.style.stroke = 'black';
   shape.style.fill = 'white';
   return shape;
@@ -84,10 +90,19 @@ Place.prototype.mousedownHandler = function(event) {
   this.p.style.stroke = 'green';
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might not hit small shapes
-  this.net.selection = this;
+  if (this.net.cursor.mode==='m') {
+    this.net.selection = this;
+    var action = this.mousemoveHandler;
+  } else if (this.net.cursor.mode==='a') {
+    this.net.selection = new Arc(this,this.net.cursor);
+    this.net.selection.a.id = 'partialArc';
+    this.net.svg.appendChild(this.net.selection.a);
+    var action = this.newArcHandler;
+  } else
+    return;
   // need to keep references to dynamically constructed listeners,
   // or removeEventListener wouldn't work
-  this.listeners = { 'mousemove' : bind(this.mousemoveHandler,this)
+  this.listeners = { 'mousemove' : bind(action,this)
                    , 'mouseup'   : bind(this.mouseupHandler,this)
                    }
   for (var l in this.listeners) 
@@ -102,9 +117,21 @@ Place.prototype.mousemoveHandler = function(event) {
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
   for (var aout in this.arcsOut) this.arcsOut[aout].updateView();
 }
+Place.prototype.newArcHandler = function(event) {
+  var p = this.net.client2canvas(event);
+  message('Place.newArcHandler '+p);
+  this.net.selection.updateView();
+}
 Place.prototype.mouseupHandler = function(event) {
   message('Place.mouseupHandler ');
   this.p.style.stroke = 'black';
+  this.p.style.strokeWidth = '10px';
+  if ((this.net.cursor.mode==='a')
+    &&(this.net.selection instanceof Arc)) {
+    this.net.svg.removeChild(this.net.selection.a); 
+    if (this.net.selection.source instanceof Transition) 
+      this.net.addArc(this.net.selection.source,this);
+  }
   this.net.selection = null;
   for (var l in this.listeners) 
     this.net.svg.removeEventListener(l,this.listeners[l],false);
@@ -127,24 +154,32 @@ function Transition(net,id,pos) {
 }
 Transition.prototype.addView = function () {
   // TODO: group node and label, use relative position for latter
-  var x2 = this.pos.x - this.net.transitionWidth/2;
-  var y2 = this.pos.y - this.net.transitionHeight/2;
-  this.t = document.createElementNS(this.net.svgNS,'rect');
-  this.t.setAttribute('class','transition');
+  this.t = this.transitionShape(this.pos.x,this.pos.y
+                               ,this.net.transitionWidth
+                               ,this.net.transitionHeight);
   this.t.id = this.id;
   this.t.transition = this;
-  this.t.setAttribute('x',x2); 
-  this.t.setAttribute('y',y2); 
-  this.t.setAttribute('width',this.net.transitionWidth);
-  this.t.setAttribute('height',this.net.transitionHeight);
-  this.t.style.stroke = 'black';
-  this.t.style.fill = 'darkgrey';
-  this.t.style.cursor = 'move';
+  // this.t.style.cursor = 'move';
   patchStyle(this.t);
   this.t.addEventListener('click',bind(this.clickHandler,this),false);
   this.t.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
   this.t.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
-  this.addLabel(x2+2*this.net.transitionWidth,y2+this.net.transitionHeight);
+  this.addLabel(this.pos.x+1.5*this.net.transitionWidth
+               ,this.pos.y+0.5*this.net.transitionHeight);
+}
+Transition.prototype.transitionShape = function (x,y,w,h) {
+  var x2 = x - w/2;
+  var y2 = y - h/2;
+  var t = document.createElementNS(Net.prototype.svgNS,'rect');
+  t.setAttribute('class','transition');
+  t.setAttribute('x',x2); 
+  t.setAttribute('y',y2); 
+  t.setAttribute('width',w);
+  t.setAttribute('height',h);
+  t.style.stroke = 'black';
+  t.style.strokeWidth = '10px';
+  t.style.fill = 'darkgrey';
+  return t;
 }
 Transition.prototype.addLabel = function (x,y) {
   this.l = document.createElementNS(this.net.svgNS,'text');
@@ -198,10 +233,19 @@ Transition.prototype.mousedownHandler = function(event) {
   this.t.style.stroke = 'green';
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might not hit small shapes
-  this.net.selection = this;
+  if (this.net.cursor.mode==='m') {
+    this.net.selection = this;
+    var action = this.mousemoveHandler;
+  } else if (this.net.cursor.mode==='a') {
+    this.net.selection = new Arc(this,this.net.cursor);
+    this.net.selection.a.id = 'partialArc';
+    this.net.svg.appendChild(this.net.selection.a);
+    var action = this.newArcHandler;
+  } else
+    return;
   // need to keep references to dynamically constructed listeners,
   // or removeEventListener wouldn't work
-  this.listeners = { 'mousemove' : bind(this.mousemoveHandler,this)
+  this.listeners = { 'mousemove' : bind(action,this)
                    , 'mouseup'   : bind(this.mouseupHandler,this)
                    }
   for (var l in this.listeners) 
@@ -216,9 +260,20 @@ Transition.prototype.mousemoveHandler = function(event) {
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
   for (var aout in this.arcsOut) this.arcsOut[aout].updateView();
 }
+Transition.prototype.newArcHandler = function(event) {
+  var p = this.net.client2canvas(event);
+  message('Place.newArcHandler '+p);
+  this.net.selection.updateView();
+}
 Transition.prototype.mouseupHandler = function(event) {
   message('Transition.mouseupHandler');
   this.t.style.stroke = 'black';
+  if ((this.net.cursor.mode==='a')
+    &&(this.net.selection instanceof Arc)) {
+    this.net.svg.removeChild(this.net.selection.a); 
+    if (this.net.selection.source instanceof Place)
+      this.net.addArc(this.net.selection.source,this);
+  }
   this.net.selection = null;
   for (var l in this.listeners) 
     this.net.svg.removeEventListener(l,this.listeners[l],false);
@@ -237,11 +292,13 @@ function Arc(source,target) {
 
   this.a = document.createElementNS(this.source.net.svgNS,'path');
   this.a.arc = this;
+  this.a.setAttribute('style', 'stroke: black; stroke-width: 10px');
   this.a.setAttribute('class','arc');
   this.a.addEventListener('click',bind(this.clickHandler,this),false);
   this.updateView();
 }
 Arc.prototype.updateView = function() {
+  message('Arc.updateView');
   var sourceCon = this.source.connectorFor(this.target.pos);
   var targetCon = this.target.connectorFor(this.source.pos);
 
@@ -255,43 +312,44 @@ Arc.prototype.clickHandler = function(event) {
   message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
 }
 
-function Cursor() {
-  var svgNS   = Net.prototype.svgNS;
-  var tWidth  = Net.prototype.transitionWidth/5;
-  var tHeight = Net.prototype.transitionHeight/5;
-  var r       = Net.prototype.r/5;
+function Cursor(net) {
+  this.net = net;
+  this.pos = new Pos(0,0);
 
-  this.palette      = document.createElementNS(svgNS,'g');
+  var svgNS   = this.net.svgNS;
+  var tWidth  = this.net.transitionWidth/5;
+  var tHeight = this.net.transitionHeight/5;
+  var r       = this.net.r/5;
 
-  this.transition  = document.createElementNS(svgNS,'rect');
-  this.transition.id = 'transitionCursor';
-  this.transition.setAttribute('width',tWidth);
-  this.transition.setAttribute('height',tHeight);
-  this.transition.setAttribute('x',100-tWidth);
-  this.transition.setAttribute('y',-100-tHeight);
-  this.transition.style.stroke  = 'black';
-  this.transition.style.fill    = 'darkgrey';
-  this.transition.style.display = 'none';
-  patchStyle(this.transition);
-  this.palette.appendChild(this.transition);
+  this.palette = document.createElementNS(svgNS,'g');
+  this.mode    = ''; // TODO: an enum would be nicer
 
-  this.place  = document.createElementNS(svgNS,'circle');
-  this.place.id = 'placeCursor';
-  this.place.setAttribute('cx',100);
-  this.place.setAttribute('cy',-100);
-  this.place.setAttribute('r',r);
-  this.place.style.stroke  = 'black';
-  this.place.style.fill    = 'white';
-  this.place.style.display = 'none';
-  patchStyle(this.place);
-  this.palette.appendChild(this.place);
+  this.transition  = Transition.prototype.transitionShape(100,-100,tWidth,tHeight);
+    this.transition.id = 'transitionCursor';
+    this.transition.style.display = 'none';
+    patchStyle(this.transition);
+    this.palette.appendChild(this.transition);
+
+  this.place  = Place.prototype.placeShape(100,-100,r);
+    this.place.id = 'placeCursor';
+    this.place.style.display = 'none';
+    patchStyle(this.place);
+    this.palette.appendChild(this.place);
 }
 // TODO: this patching is getting ridiculous
 Cursor.prototype.hideAll = function () {
-    this.transition.style.display = 'none'; 
-    patchStyle(this.transition);
-    this.place.style.display = 'none'; 
-    patchStyle(this.place);
+  this.net.svg.style.cursor = 'auto';
+  this.transition.style.display = 'none'; 
+  patchStyle(this.transition);
+  this.place.style.display = 'none'; 
+  patchStyle(this.place);
+}
+Cursor.prototype.defaultCursor = function () {
+  this.hideAll();
+}
+Cursor.prototype.moveCursor = function () {
+  this.hideAll();
+  this.net.svg.style.cursor = 'move';
 }
 Cursor.prototype.transitionCursor = function () {
   this.hideAll();
@@ -302,6 +360,21 @@ Cursor.prototype.placeCursor = function () {
   this.hideAll();
   this.place.style.display = 'inline';
   patchStyle(this.place);
+}
+Cursor.prototype.connectorFor = function(pos) {
+  message('Cursor.connectorFor');
+  return this.pos;
+}
+Cursor.prototype.updatePos = function() {
+  message('Cursor.updatePos');
+  var transform = this.palette.getAttribute('transform');
+  // TODO: stop kidding, what is the proper way to get those coordinates?
+  var coords = transform.match(/translate\((-?\d+.\d*),(-?\d+.\d*)\)/);
+  if (coords) {
+    this.pos.x = coords[1];
+    this.pos.y = coords[2];
+  } else
+    message(transform);
 }
 
 function Net(id) {
@@ -314,40 +387,21 @@ function Net(id) {
   this.svg.setAttribute('viewBox','0 0 5000 3000');
   this.svg.style.margin = '10px';
 
-  listProperties('svg.viewBox.baseVal',this.svg.viewBox.baseVal);
   // opera doesn't register mousemove events where there is no svg content,
   // so we provide a dummy backdrop (this doesn't seem needed in firefox?)
   // TODO: does the standard say anything about this?
-  this.svgBackdrop = document.createElementNS(this.svgNS,'rect');
-    this.svgBackdrop.id = 'svgBackdrop';
-    // TODO: read svg viewport spec again, viewBox, viewport and aspect..
-    this.svgBackdrop.setAttribute('width',5000); 
-    this.svgBackdrop.setAttribute('height',3000);
-    this.svgBackdrop.setAttribute('x',0);
-    this.svgBackdrop.setAttribute('y',0);
-    this.svgBackdrop.setAttribute('style','fill: lightgrey');
-    this.svg.appendChild(this.svgBackdrop);
+  this.addBackdrop();
 
-  /* TODO: how to make cursor elements work?..
-  this.cursor = document.createElementNS(this.svgNS,'cursor');
-  this.cursor.id = 'mycursor';
-  this.cursor.setAttribute('xlink:href', 'place.png');
-  this.svg.appendChild(this.cursor);
-  this.svg.style.cursor = 'url("#mycursor")';
-  */
+  this.addDefs();
 
-  var defs   = document.createElementNS(this.svgNS,'defs');
-  var marker = this.defineMarker();
-  defs.appendChild(marker);
-  this.svg.appendChild(defs);
-
-  this.cursor      = new Cursor();
+  this.cursor      = new Cursor(this);
   this.svg.appendChild(this.cursor.palette);
 
   this.svg.net = this;
   this.clicks = 0;
   this.svg.addEventListener('click',bind(this.clickHandler,this),false);
   this.svg.addEventListener('mousemove',bind(this.mousemoveHandler,this),false);
+  // can't listen for keypress on svg only?
   document.documentElement.addEventListener('keypress'
                                            ,bind(this.keypressHandler,this)
                                            ,false);
@@ -356,14 +410,14 @@ function Net(id) {
   this.transitions = [];
   this.arcs        = [];
   this.selection   = null;
-  this.insertType  = 'p';
 
   this.help = document.createElement('pre');
   this.help.id = 'netHelp';
   this.help.appendChild(document.createTextNode(
-    ['use mouse to drag nodes'
+    ['press "m" and use mouse to move nodes'
     ,'press "t" and click to add transitions'
     ,'press "p" and click to add places'
+    ,'press "a" and drag from node to add arcs'
     ].join("\n")
     ));
 
@@ -388,8 +442,22 @@ Net.prototype.toString = function() {
   return r;
 }
 
-Net.prototype.defineMarker = function () {
+Net.prototype.addBackdrop = function () {
+  this.svgBackdrop = document.createElementNS(this.svgNS,'rect');
+    this.svgBackdrop.id = 'svgBackdrop';
+    // TODO: read svg viewport spec again, viewBox, viewport and aspect..
+    //       how to calculate the visible x/y-coordinates automatically?
+    this.svgBackdrop.setAttribute('width',5000); 
+    this.svgBackdrop.setAttribute('height',5000);
+    this.svgBackdrop.setAttribute('x',0);
+    this.svgBackdrop.setAttribute('y',-1000);
+    this.svgBackdrop.setAttribute('style','fill: lightgrey');
+    this.svg.appendChild(this.svgBackdrop);
+}
+Net.prototype.addDefs = function () {
+  var defs   = document.createElementNS(this.svgNS,'defs');
   var marker = document.createElementNS(this.svgNS,'marker');
+
   marker.id = "Arrow";
   marker.setAttribute('viewBox','0 0 10 10');
   marker.setAttribute('refX','10');
@@ -401,7 +469,9 @@ Net.prototype.defineMarker = function () {
   var path = document.createElementNS(this.svgNS,'path');
   path.setAttribute('d','M 0 0 L 10 5 L 0 10 z');
   marker.appendChild(path);
-  return marker;
+
+  defs.appendChild(marker);
+  this.svg.appendChild(defs);
 }
 
 Net.prototype.client2canvas = function (event) {
@@ -414,11 +484,11 @@ Net.prototype.client2canvas = function (event) {
 }
 
 Net.prototype.clickHandler = function (event) {
-  message('Net.clickHandler '+this.insertType);
+  message('Net.clickHandler '+this.cursor.mode);
   var p = this.client2canvas(event);
-  if (this.insertType=='p')
+  if (this.cursor.mode=='p')
     this.addPlace('CLICK'+this.clicks,p.x,p.y);
-  else if (this.insertType=='t')
+  else if (this.cursor.mode=='t')
     this.addTransition('CLICK'+this.clicks,p.x,p.y);
 }
 
@@ -449,25 +519,25 @@ Net.prototype.addTransition = function (id,x,y) {
 }
 
 // seems we can only listen for keys outside svg
-// we only set an insertType for use in later click events 
+// we only set a mode for use in later click events 
 Net.prototype.keypressHandler = function (event) {
   // TODO: spec says charCode if printable, keyCode otherwise;
   //       opera 10.10 always seems to use keyCode, firefox follows spec?
   var key = event.charCode || event.keyCode;
-  this.insertType = String.fromCharCode(key);
-  message('Net.keypressHandler '+this.insertType+' '+event.charCode+'/'+event.keyCode);
-  if (this.insertType==='t') {
-    this.cursor.transitionCursor();
-  } else if (this.insertType==='p') {
-    this.cursor.placeCursor();
-  } else {
-    this.cursor.hideAll();
+  this.cursor.mode = String.fromCharCode(key);
+  // message('Net.keypressHandler '+this.cursor.mode+' '+event.charCode+'/'+event.keyCode);
+  switch (this.cursor.mode) {
+    case 't': this.cursor.transitionCursor(); break;
+    case 'p': this.cursor.placeCursor(); break;
+    case 'm': this.cursor.moveCursor(); break;
+    default: this.cursor.defaultCursor();
   }
 }
 
 Net.prototype.mousemoveHandler = function (event) {
   var p = this.client2canvas(event);
-  // message('Net.mousemoveHandler '+p);
+  // message('Net.mousemoveHandler '+p.x+'/'+p.y);
   this.cursor.palette.setAttribute('transform','translate('+p.x+','+p.y+')');
+  this.cursor.updatePos();
 }
 
