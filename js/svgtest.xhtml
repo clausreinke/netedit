@@ -31,10 +31,14 @@ function initNet() {
   var out1 = net.addPlace('out1', 3000, 1000);
   var out2 = net.addPlace('out2', 3000, 2000);
 
-  net.addArc(in1,t1);
-  net.addArc(in2,t1);
-  net.addArc(t1,out1);
-  net.addArc(t1,out2);
+  var a1 = net.addArc(in1,t1);
+  var a2 = net.addArc(in2,t1);
+  var a3 = net.addArc(t1,out1);
+  var a4 = net.addArc(t1,out2);
+
+  // net.removeArc(a2);
+  // net.removePlace(out1);
+  // net.removeTransition(t1);
 
   document.body.insertBefore(net.svg,document.body.firstChild);
   document.body.insertBefore(net.help,document.body.firstChild);

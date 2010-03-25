@@ -9,6 +9,10 @@ function bind(f,x) {
 // firefox keeps the properties in the javascript object, 
 // but uses only the last one set for actual css styling, 
 // so we regroup the properties into a single setAttribute
+// TODO: we're still sometimes losing style attributes in firefox
+//       ('esc' might lose placeCursor attributes, then 'p' gives 
+//       black cursor - when this happens, the individual style 
+//       attributes of the javascript object are also gone?)
 function patchStyle(x) {
   var cssvals = ['stroke','stroke-width','fill','cursor','display'];
   var jsvals  = ['stroke','strokeWidth','fill','cursor','display'];
@@ -16,11 +20,10 @@ function patchStyle(x) {
   for (var i in cssvals) {
     var cssval = cssvals[i];
     var jsval  = jsvals[i];
-    if (x.style[jsval])
-    style.push(cssval+': '+x.style[jsval]);
+    if (x.style[jsval]) style.push(cssval+': '+x.style[jsval]);
   }
-  // message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
-  x.setAttribute('style',style.join('; '));
+  message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
+  x.style.cssText = style.join('; ');
 }
 
 function Place(net,id,pos) {
@@ -50,6 +53,7 @@ Place.prototype.placeShape = function (x,y,r) {
   shape.setAttribute('cy',y); 
   shape.setAttribute('r',r);
   shape.style.stroke = 'black';
+  // shape.style.strokeWidth = '10px';
   shape.style.fill = 'white';
   return shape;
 }
@@ -83,7 +87,9 @@ Place.prototype.connectorFor = function(pos) {
 }
 Place.prototype.clickHandler = function(event) {
   message('Place.clickHandler');
-  event.stopPropagation(); // avoid net clickHandler
+  if (this.net.cursor.mode==='d') this.net.removePlace(this);
+  return true;
+  // event.stopPropagation(); // avoid net clickHandler
 }
 Place.prototype.mousedownHandler = function(event) {
   message('Place.mousedownHandler');
@@ -96,10 +102,12 @@ Place.prototype.mousedownHandler = function(event) {
   } else if (this.net.cursor.mode==='a') {
     this.net.selection = new Arc(this,this.net.cursor);
     this.net.selection.a.id = 'partialArc';
-    this.net.svg.appendChild(this.net.selection.a);
+    // place the arc just after the backdrop, so it isn't hiding anything
+    this.net.svg.insertBefore(this.net.selection.a
+                             ,this.net.svg.firstChild.nextSibling);
     var action = this.newArcHandler;
   } else
-    return;
+    return true;
   // need to keep references to dynamically constructed listeners,
   // or removeEventListener wouldn't work
   this.listeners = { 'mousemove' : bind(action,this)
@@ -107,7 +115,8 @@ Place.prototype.mousedownHandler = function(event) {
                    }
   for (var l in this.listeners) 
     this.net.svg.addEventListener(l,this.listeners[l],false);
-  event.stopPropagation();
+  return true;
+  // event.stopPropagation();
 }
 Place.prototype.mousemoveHandler = function(event) {
   var p = this.net.client2canvas(event);
@@ -116,11 +125,13 @@ Place.prototype.mousemoveHandler = function(event) {
   this.updateView();
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
   for (var aout in this.arcsOut) this.arcsOut[aout].updateView();
+  return true;
 }
 Place.prototype.newArcHandler = function(event) {
   var p = this.net.client2canvas(event);
   message('Place.newArcHandler '+p);
   this.net.selection.updateView();
+  return true;
 }
 Place.prototype.mouseupHandler = function(event) {
   message('Place.mouseupHandler ');
@@ -136,12 +147,19 @@ Place.prototype.mouseupHandler = function(event) {
   for (var l in this.listeners) 
     this.net.svg.removeEventListener(l,this.listeners[l],false);
   this.listeners = {};
+  return true;
 }
 Place.prototype.registerArcAtSource = function(arc) {
   this.arcsOut.push(arc);
 }
 Place.prototype.registerArcAtTarget = function(arc) {
   this.arcsIn.push(arc);
+}
+Place.prototype.unregisterArcAtSource = function(arc) {
+  delete this.arcsOut[this.arcsOut.indexOf(arc)];
+}
+Place.prototype.unregisterArcAtTarget = function(arc) {
+  delete this.arcsIn[this.arcsIn.indexOf(arc)];
 }
 
 function Transition(net,id,pos) {
@@ -226,7 +244,9 @@ Transition.prototype.connectorFor = function(pos) {
 // TODO: slim shapes are hard to hit, perhaps add a transparent halo?
 Transition.prototype.clickHandler = function(event) {
   message('Transition.clickHandler');
-  event.stopPropagation(); // avoid net clickHandler
+  if (this.net.cursor.mode==='d') this.net.removeTransition(this);
+  // event.stopPropagation(); // avoid net clickHandler
+  return true;
 }
 Transition.prototype.mousedownHandler = function(event) {
   message('Transition.mousedownHandler');
@@ -239,10 +259,12 @@ Transition.prototype.mousedownHandler = function(event) {
   } else if (this.net.cursor.mode==='a') {
     this.net.selection = new Arc(this,this.net.cursor);
     this.net.selection.a.id = 'partialArc';
-    this.net.svg.appendChild(this.net.selection.a);
+    // place the arc just after the backdrop, so it isn't hiding anything
+    this.net.svg.insertBefore(this.net.selection.a
+                             ,this.net.svg.firstChild.nextSibling);
     var action = this.newArcHandler;
   } else
-    return;
+    return true;
   // need to keep references to dynamically constructed listeners,
   // or removeEventListener wouldn't work
   this.listeners = { 'mousemove' : bind(action,this)
@@ -250,7 +272,8 @@ Transition.prototype.mousedownHandler = function(event) {
                    }
   for (var l in this.listeners) 
     this.net.svg.addEventListener(l,this.listeners[l],false);
-  event.stopPropagation();
+  // event.stopPropagation();
+  return true;
 }
 Transition.prototype.mousemoveHandler = function(event) {
   var p = this.net.client2canvas(event);
@@ -259,12 +282,16 @@ Transition.prototype.mousemoveHandler = function(event) {
   this.updateView();
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
   for (var aout in this.arcsOut) this.arcsOut[aout].updateView();
+  return true;
 }
 Transition.prototype.newArcHandler = function(event) {
   var p = this.net.client2canvas(event);
   message('Place.newArcHandler '+p);
   this.net.selection.updateView();
+  return true;
 }
+// TODO: opera runs both mouseupHandlers, firefox only the last added one
+//       (the one added to the svg, not the one added to the element) - why?
 Transition.prototype.mouseupHandler = function(event) {
   message('Transition.mouseupHandler');
   this.t.style.stroke = 'black';
@@ -278,12 +305,19 @@ Transition.prototype.mouseupHandler = function(event) {
   for (var l in this.listeners) 
     this.net.svg.removeEventListener(l,this.listeners[l],false);
   this.listeners = {};
+  // return true;
 }
 Transition.prototype.registerArcAtSource = function(arc) {
   this.arcsOut.push(arc);
 }
 Transition.prototype.registerArcAtTarget = function(arc) {
   this.arcsIn.push(arc);
+}
+Transition.prototype.unregisterArcAtSource = function(arc) {
+  delete this.arcsOut[this.arcsOut.indexOf(arc)];
+}
+Transition.prototype.unregisterArcAtTarget = function(arc) {
+  delete this.arcsIn[this.arcsIn.indexOf(arc)];
 }
 
 function Arc(source,target) {
@@ -310,6 +344,8 @@ Arc.prototype.toString = function() {
 }
 Arc.prototype.clickHandler = function(event) {
   message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
+  if (this.source.net.cursor.mode==='d') this.source.net.removeArc(this);
+  return true;
 }
 
 function Cursor(net) {
@@ -347,6 +383,10 @@ Cursor.prototype.hideAll = function () {
 Cursor.prototype.defaultCursor = function () {
   this.hideAll();
 }
+Cursor.prototype.deleteCursor = function () {
+  this.hideAll();
+  this.net.svg.style.cursor = 'crosshair';
+}
 Cursor.prototype.moveCursor = function () {
   this.hideAll();
   this.net.svg.style.cursor = 'move';
@@ -365,16 +405,11 @@ Cursor.prototype.connectorFor = function(pos) {
   message('Cursor.connectorFor');
   return this.pos;
 }
-Cursor.prototype.updatePos = function() {
-  message('Cursor.updatePos');
-  var transform = this.palette.getAttribute('transform');
-  // TODO: stop kidding, what is the proper way to get those coordinates?
-  var coords = transform.match(/translate\((-?\d+.\d*),(-?\d+.\d*)\)/);
-  if (coords) {
-    this.pos.x = coords[1];
-    this.pos.y = coords[2];
-  } else
-    message(transform);
+Cursor.prototype.updatePos = function(p) {
+  this.palette.setAttribute('transform','translate('+p.x+','+p.y+')');
+  // message('Cursor.updatePos');
+  this.pos.x = p.x;
+  this.pos.y = p.y;
 }
 
 function Net(id) {
@@ -418,6 +453,7 @@ function Net(id) {
     ,'press "t" and click to add transitions'
     ,'press "p" and click to add places'
     ,'press "a" and drag from node to add arcs'
+    ,'press "d" and click to delete nodes or arcs'
     ].join("\n")
     ));
 
@@ -490,6 +526,7 @@ Net.prototype.clickHandler = function (event) {
     this.addPlace('CLICK'+this.clicks,p.x,p.y);
   else if (this.cursor.mode=='t')
     this.addTransition('CLICK'+this.clicks,p.x,p.y);
+  return true;
 }
 
 Net.prototype.addArc = function (source,target) {
@@ -501,7 +538,14 @@ Net.prototype.addArc = function (source,target) {
     source.registerArcAtSource(arc);
     target.registerArcAtTarget(arc);
     this.svg.appendChild(arc.a);
+    return arc;
   }
+}
+Net.prototype.removeArc = function (arc) {
+  delete this.arcs[this.arcs.indexOf(arc)];
+  arc.source.unregisterArcAtSource(arc);
+  arc.target.unregisterArcAtTarget(arc);
+  this.svg.removeChild(arc.a);
 }
 
 Net.prototype.addPlace = function (id,x,y) {
@@ -510,6 +554,13 @@ Net.prototype.addPlace = function (id,x,y) {
   this.svg.appendChild(place.p);
   return place;
 }
+Net.prototype.removePlace = function (place) {
+  delete this.places[place.id];
+  for (var arcIn in place.arcsIn) this.removeArc(place.arcsIn[arcIn]);
+  for (var arcOut in place.arcsOut) this.removeArc(place.arcsOut[arcOut]);
+  this.svg.removeChild(place.p);
+  this.svg.removeChild(place.l);
+}
 
 Net.prototype.addTransition = function (id,x,y) {
   var transition = new Transition(this,id,new Pos(x,y));
@@ -517,9 +568,17 @@ Net.prototype.addTransition = function (id,x,y) {
   this.svg.appendChild(transition.t);
   return transition;
 }
+Net.prototype.removeTransition = function (transition) {
+  delete this.transitions[transition.id];
+  for (var arcIn in transition.arcsIn) this.removeArc(transition.arcsIn[arcIn]);
+  for (var arcOut in transition.arcsOut) this.removeArc(transition.arcsOut[arcOut]);
+  this.svg.removeChild(transition.t);
+  this.svg.removeChild(transition.l);
+}
 
 // seems we can only listen for keys outside svg
 // we only set a mode for use in later click events 
+// TODO: move to Cursor?
 Net.prototype.keypressHandler = function (event) {
   // TODO: spec says charCode if printable, keyCode otherwise;
   //       opera 10.10 always seems to use keyCode, firefox follows spec?
@@ -530,14 +589,17 @@ Net.prototype.keypressHandler = function (event) {
     case 't': this.cursor.transitionCursor(); break;
     case 'p': this.cursor.placeCursor(); break;
     case 'm': this.cursor.moveCursor(); break;
+    case 'd': this.cursor.deleteCursor(); break;
     default: this.cursor.defaultCursor();
   }
+  // event.preventDefault(); // how to do this only inside svg?
+  return true;
 }
 
 Net.prototype.mousemoveHandler = function (event) {
   var p = this.client2canvas(event);
   // message('Net.mousemoveHandler '+p.x+'/'+p.y);
-  this.cursor.palette.setAttribute('transform','translate('+p.x+','+p.y+')');
-  this.cursor.updatePos();
+  this.cursor.updatePos(p);
+  return true;
 }
 
