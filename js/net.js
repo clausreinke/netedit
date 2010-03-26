@@ -22,7 +22,7 @@ function patchStyle(x) {
     var jsval  = jsvals[i];
     if (x.style[jsval]) style.push(cssval+': '+x.style[jsval]);
   }
-  message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
+  // message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
   x.style.cssText = style.join('; ');
 }
 
@@ -37,7 +37,7 @@ function Place(net,id,pos) {
 Place.prototype.addView = function () {
   // TODO: group node and label, use relative position for latter
   this.p = this.placeShape(this.pos.x,this.pos.y,this.net.r);
-  this.p.id = this.id;
+  this.p.id = this.id; // TODO: filter/translate to get valid ids only!
   this.p.place = this;
   // this.p.style.cursor = 'move';
   patchStyle(this.p);
@@ -66,10 +66,15 @@ Place.prototype.addLabel = function (x,y) {
   this.l.setAttribute('x',x);
   this.l.setAttribute('y',y);
   this.l.appendChild(document.createTextNode(this.id));
+  this.l.addEventListener('click',bind(this.rename,this),false);
   this.net.svg.appendChild(this.l);
 }
+Place.prototype.rename = function(event) {
+  this.l.firstChild.data = prompt('new place name? ',this.id);
+  this.updateView();
+}
 Place.prototype.updateView = function() {
-  this.p.id = this.id;
+  this.p.id = this.id; // TODO: filter/translate to get valid ids only!
   this.p.setAttribute('cx',this.pos.x); 
   this.p.setAttribute('cy',this.pos.y); 
   this.p.setAttribute('r',this.net.r);
@@ -86,13 +91,13 @@ Place.prototype.connectorFor = function(pos) {
   return this.pos.add(vec.scale(Net.prototype.r/l));
 }
 Place.prototype.clickHandler = function(event) {
-  message('Place.clickHandler');
+  // message('Place.clickHandler');
   if (this.net.cursor.mode==='d') this.net.removePlace(this);
   return true;
   // event.stopPropagation(); // avoid net clickHandler
 }
 Place.prototype.mousedownHandler = function(event) {
-  message('Place.mousedownHandler');
+  // message('Place.mousedownHandler');
   this.p.style.stroke = 'green';
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might not hit small shapes
@@ -120,7 +125,7 @@ Place.prototype.mousedownHandler = function(event) {
 }
 Place.prototype.mousemoveHandler = function(event) {
   var p = this.net.client2canvas(event);
-  message('Place.mousemoveHandler '+p);
+  // message('Place.mousemoveHandler '+p);
   this.pos = new Pos(p.x,p.y);
   this.updateView();
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
@@ -129,12 +134,12 @@ Place.prototype.mousemoveHandler = function(event) {
 }
 Place.prototype.newArcHandler = function(event) {
   var p = this.net.client2canvas(event);
-  message('Place.newArcHandler '+p);
+  // message('Place.newArcHandler '+p);
   this.net.selection.updateView();
   return true;
 }
 Place.prototype.mouseupHandler = function(event) {
-  message('Place.mouseupHandler ');
+  // message('Place.mouseupHandler ');
   this.p.style.stroke = 'black';
   this.p.style.strokeWidth = '10px';
   if ((this.net.cursor.mode==='a')
@@ -175,7 +180,7 @@ Transition.prototype.addView = function () {
   this.t = this.transitionShape(this.pos.x,this.pos.y
                                ,this.net.transitionWidth
                                ,this.net.transitionHeight);
-  this.t.id = this.id;
+  this.t.id = this.id; // TODO: filter/translate to get valid ids only!
   this.t.transition = this;
   // this.t.style.cursor = 'move';
   patchStyle(this.t);
@@ -208,12 +213,17 @@ Transition.prototype.addLabel = function (x,y) {
   this.l.setAttribute('x',x);
   this.l.setAttribute('y',y);
   this.l.appendChild(document.createTextNode(this.id));
+  this.l.addEventListener('click',bind(this.rename,this),false);
   this.net.svg.appendChild(this.l);
+}
+Transition.prototype.rename = function(event) {
+  this.l.firstChild.data = prompt('new transition name? ',this.id);
+  this.updateView();
 }
 Transition.prototype.updateView = function() {
   var x2 = this.pos.x - this.net.transitionWidth/2;
   var y2 = this.pos.y - this.net.transitionHeight/2;
-  this.t.id = this.id;
+  this.t.id = this.id; // TODO: filter/translate to get valid ids only!
   this.t.setAttribute('x',x2); 
   this.t.setAttribute('y',y2); 
   this.t.setAttribute('width',this.net.transitionWidth);
@@ -243,13 +253,13 @@ Transition.prototype.connectorFor = function(pos) {
 }
 // TODO: slim shapes are hard to hit, perhaps add a transparent halo?
 Transition.prototype.clickHandler = function(event) {
-  message('Transition.clickHandler');
+  // message('Transition.clickHandler');
   if (this.net.cursor.mode==='d') this.net.removeTransition(this);
   // event.stopPropagation(); // avoid net clickHandler
   return true;
 }
 Transition.prototype.mousedownHandler = function(event) {
-  message('Transition.mousedownHandler');
+  // message('Transition.mousedownHandler');
   this.t.style.stroke = 'green';
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might not hit small shapes
@@ -277,7 +287,7 @@ Transition.prototype.mousedownHandler = function(event) {
 }
 Transition.prototype.mousemoveHandler = function(event) {
   var p = this.net.client2canvas(event);
-  message('Transition.mousemoveHandler '+p);
+  // message('Transition.mousemoveHandler '+p);
   this.pos = new Pos(p.x,p.y);
   this.updateView();
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
@@ -286,14 +296,14 @@ Transition.prototype.mousemoveHandler = function(event) {
 }
 Transition.prototype.newArcHandler = function(event) {
   var p = this.net.client2canvas(event);
-  message('Place.newArcHandler '+p);
+  // message('Place.newArcHandler '+p);
   this.net.selection.updateView();
   return true;
 }
 // TODO: opera runs both mouseupHandlers, firefox only the last added one
 //       (the one added to the svg, not the one added to the element) - why?
 Transition.prototype.mouseupHandler = function(event) {
-  message('Transition.mouseupHandler');
+  // message('Transition.mouseupHandler');
   this.t.style.stroke = 'black';
   if ((this.net.cursor.mode==='a')
     &&(this.net.selection instanceof Arc)) {
@@ -332,7 +342,7 @@ function Arc(source,target) {
   this.updateView();
 }
 Arc.prototype.updateView = function() {
-  message('Arc.updateView');
+  // message('Arc.updateView');
   var sourceCon = this.source.connectorFor(this.target.pos);
   var targetCon = this.target.connectorFor(this.source.pos);
 
@@ -343,7 +353,7 @@ Arc.prototype.toString = function() {
   return this.source+'->'+this.target;
 }
 Arc.prototype.clickHandler = function(event) {
-  message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
+  // message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
   if (this.source.net.cursor.mode==='d') this.source.net.removeArc(this);
   return true;
 }
@@ -402,7 +412,7 @@ Cursor.prototype.placeCursor = function () {
   patchStyle(this.place);
 }
 Cursor.prototype.connectorFor = function(pos) {
-  message('Cursor.connectorFor');
+  // message('Cursor.connectorFor');
   return this.pos;
 }
 Cursor.prototype.updatePos = function(p) {
@@ -420,6 +430,7 @@ function Net(id) {
   this.svg.setAttribute('width','10cm');
   this.svg.setAttribute('height','10cm');
   this.svg.setAttribute('viewBox','0 0 5000 3000');
+  this.svg.setAttribute('clip','0 0 5000 3000');
   this.svg.style.margin = '10px';
 
   // opera doesn't register mousemove events where there is no svg content,
@@ -431,6 +442,9 @@ function Net(id) {
 
   this.cursor      = new Cursor(this);
   this.svg.appendChild(this.cursor.palette);
+
+  // TODO: maintain separate groups for places, transitions, arcs, 
+  //       and labels, eg, to ensure that all labels overlap all nodes
 
   this.svg.net = this;
   this.clicks = 0;
@@ -462,7 +476,7 @@ function Net(id) {
 Net.prototype.svgNS = 'http://www.w3.org/2000/svg';
 Net.prototype.r           = 400;
 // TODO: asymmetric transition shape calls for rotation ability
-Net.prototype.transitionWidth       = Net.prototype.r/10;
+Net.prototype.transitionWidth       = Net.prototype.r/5;
 Net.prototype.transitionHeight      = 2*Net.prototype.r;
 
 Net.prototype.toString = function() {
@@ -520,12 +534,14 @@ Net.prototype.client2canvas = function (event) {
 }
 
 Net.prototype.clickHandler = function (event) {
-  message('Net.clickHandler '+this.cursor.mode);
+  // message('Net.clickHandler '+this.cursor.mode);
   var p = this.client2canvas(event);
   if (this.cursor.mode=='p')
-    this.addPlace('CLICK'+this.clicks,p.x,p.y);
+    this.addPlace(prompt('name of new place: ','p'+this.clicks++)
+                 ,p.x,p.y);
   else if (this.cursor.mode=='t')
-    this.addTransition('CLICK'+this.clicks,p.x,p.y);
+    this.addTransition(prompt('name of new transition: ','t'+this.clicks++)
+                      ,p.x,p.y);
   return true;
 }
 
