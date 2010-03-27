@@ -1,7 +1,11 @@
-function listAttributes(pre,x) {
+function listAttributes(pre,x,ns) {
   message('// ------------- listing attributes for '+pre);
   for (var a in x.attributes) {
-    message(pre+a+" = "+x.getAttribute(a));
+    var xa = x.attributes[a];
+    if (xa && xa.name && xa.value)
+    message(pre+'.'+a+" = "+x.getAttribute(a)
+                     +' | '+x.getAttributeNS(ns,a)
+                     +' | '+xa.name+'='+xa.value);
     if (a && a.value)
       message("// "+pre+a+".value : "+a.value);
   }
@@ -11,10 +15,13 @@ function listProperties(pre,x) {
   message('// ----start---- listing properties for '+pre);
   for (var key in x) {
     p = x[key];
-    if (p && (typeof p != "function"))
+    if (p!==null && p!=='' && (typeof p != "function")) {
       message(pre+'.'+key+"("+typeof p+") : "+p);
-    if (p && p.value)
-      message("// "+pre+'.'+key+".value : "+p.value);
+      if (p.name)
+        message("// "+pre+'.'+key+".name : "+p.name);
+      if (p.value)
+        message("// "+pre+'.'+key+".value : "+p.value);
+    }
   }
   message('// ----end------ listing properties for '+pre);
 }
