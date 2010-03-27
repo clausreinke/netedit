@@ -1,3 +1,5 @@
+var svgNS = 'http://www.w3.org/2000/svg';
+
 // bind function this-reference (useful when called from elsewhere)
 function bind(f,x) {
   return function() {
@@ -6,23 +8,27 @@ function bind(f,x) {
 }
 
 // opera does sequences of style.property=blah setters just fine;
-// firefox keeps the properties in the javascript object, 
+// firefox (mostly) keeps the properties in the javascript object, 
 // but uses only the last one set for actual css styling, 
 // so we regroup the properties into a single setAttribute
 // TODO: we're still sometimes losing style attributes in firefox
 //       ('esc' might lose placeCursor attributes, then 'p' gives 
 //       black cursor - when this happens, the individual style 
 //       attributes of the javascript object are also gone?)
+//       ==> try to use object attributes instead of style properties,
+//           replacing x.style.prop= with x.setAttributeNS(null,'prop',)
+//           everywhere
 function patchStyle(x) {
-  var cssvals = ['stroke','stroke-width','fill','cursor','display'];
-  var jsvals  = ['stroke','strokeWidth','fill','cursor','display'];
+  var cssvals = ['cursor','display'];
+  var jsvals  = ['cursor','display'];
   var style   = [];
   for (var i in cssvals) {
     var cssval = cssvals[i];
     var jsval  = jsvals[i];
     if (x.style[jsval]) style.push(cssval+': '+x.style[jsval]);
   }
-  // message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
+  listProperties('x.style'+(x.id?'('+x.id+'): ':': '),x.style);
+  message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
   x.style.cssText = style.join('; ');
 }
 
@@ -47,24 +53,24 @@ Place.prototype.addView = function () {
   this.addLabel(this.pos.x+this.net.r,this.pos.y+this.net.r);
 }
 Place.prototype.placeShape = function (x,y,r) {
-  var shape = document.createElementNS(Net.prototype.svgNS,'circle');
-  shape.setAttribute('class','place');
-  shape.setAttribute('cx',x); 
-  shape.setAttribute('cy',y); 
-  shape.setAttribute('r',r);
-  shape.style.stroke = 'black';
-  // shape.style.strokeWidth = '10px';
-  shape.style.fill = 'white';
+  var shape = document.createElementNS(svgNS,'circle');
+  shape.setAttributeNS(null,'class','place');
+  shape.setAttributeNS(null,'cx',x); 
+  shape.setAttributeNS(null,'cy',y); 
+  shape.setAttributeNS(null,'r',r);
+  shape.setAttributeNS(null,'stroke','black');
+  shape.setAttributeNS(null,'strokeWidth','10px');
+  shape.setAttributeNS(null,'fill','white');
   return shape;
 }
 Place.prototype.addLabel = function (x,y) {
-  this.l = document.createElementNS(this.net.svgNS,'text');
-  this.l.setAttribute('class','label');
-  this.l.setAttribute('stroke','red');
-  this.l.setAttribute('stroke-width','1');
-  this.l.setAttribute('font-size','200');
-  this.l.setAttribute('x',x);
-  this.l.setAttribute('y',y);
+  this.l = document.createElementNS(svgNS,'text');
+  this.l.setAttributeNS(null,'class','label');
+  this.l.setAttributeNS(null,'stroke','red');
+  this.l.setAttributeNS(null,'stroke-width','1');
+  this.l.setAttributeNS(null,'font-size','200');
+  this.l.setAttributeNS(null,'x',x);
+  this.l.setAttributeNS(null,'y',y);
   this.l.appendChild(document.createTextNode(this.id));
   this.l.addEventListener('click',bind(this.rename,this),false);
   this.net.svg.appendChild(this.l);
@@ -75,11 +81,11 @@ Place.prototype.rename = function(event) {
 }
 Place.prototype.updateView = function() {
   this.p.id = this.id; // TODO: filter/translate to get valid ids only!
-  this.p.setAttribute('cx',this.pos.x); 
-  this.p.setAttribute('cy',this.pos.y); 
-  this.p.setAttribute('r',this.net.r);
-  this.l.setAttribute('x',this.pos.x+this.net.r);
-  this.l.setAttribute('y',this.pos.y+this.net.r);
+  this.p.setAttributeNS(null,'cx',this.pos.x); 
+  this.p.setAttributeNS(null,'cy',this.pos.y); 
+  this.p.setAttributeNS(null,'r',this.net.r);
+  this.l.setAttributeNS(null,'x',this.pos.x+this.net.r);
+  this.l.setAttributeNS(null,'y',this.pos.y+this.net.r);
 }
 Place.prototype.toString = function() {
   return 'Place('+this.id+','+this.pos+')';
@@ -98,7 +104,7 @@ Place.prototype.clickHandler = function(event) {
 }
 Place.prototype.mousedownHandler = function(event) {
   // message('Place.mousedownHandler');
-  this.p.style.stroke = 'green';
+  this.p.setAttributeNS(null,'stroke','green');
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might not hit small shapes
   if (this.net.cursor.mode==='m') {
@@ -140,8 +146,8 @@ Place.prototype.newArcHandler = function(event) {
 }
 Place.prototype.mouseupHandler = function(event) {
   // message('Place.mouseupHandler ');
-  this.p.style.stroke = 'black';
-  this.p.style.strokeWidth = '10px';
+  this.p.setAttributeNS(null,'stroke','black');
+  this.p.setAttributeNS(null,'strokeWidth','10px');
   if ((this.net.cursor.mode==='a')
     &&(this.net.selection instanceof Arc)) {
     this.net.svg.removeChild(this.net.selection.a); 
@@ -193,25 +199,25 @@ Transition.prototype.addView = function () {
 Transition.prototype.transitionShape = function (x,y,w,h) {
   var x2 = x - w/2;
   var y2 = y - h/2;
-  var t = document.createElementNS(Net.prototype.svgNS,'rect');
-  t.setAttribute('class','transition');
-  t.setAttribute('x',x2); 
-  t.setAttribute('y',y2); 
-  t.setAttribute('width',w);
-  t.setAttribute('height',h);
-  t.style.stroke = 'black';
-  t.style.strokeWidth = '10px';
-  t.style.fill = 'darkgrey';
+  var t = document.createElementNS(svgNS,'rect');
+  t.setAttributeNS(null,'class','transition');
+  t.setAttributeNS(null,'x',x2); 
+  t.setAttributeNS(null,'y',y2); 
+  t.setAttributeNS(null,'width',w);
+  t.setAttributeNS(null,'height',h);
+  t.setAttributeNS(null,'stroke','black');
+  t.setAttributeNS(null,'strokeWidth','10px');
+  t.setAttributeNS(null,'fill','darkgrey');
   return t;
 }
 Transition.prototype.addLabel = function (x,y) {
-  this.l = document.createElementNS(this.net.svgNS,'text');
-  this.l.setAttribute('class','label');
-  this.l.setAttribute('stroke','red');
-  this.l.setAttribute('stroke-width','1');
-  this.l.setAttribute('font-size','200');
-  this.l.setAttribute('x',x);
-  this.l.setAttribute('y',y);
+  this.l = document.createElementNS(svgNS,'text');
+  this.l.setAttributeNS(null,'class','label');
+  this.l.setAttributeNS(null,'stroke','red');
+  this.l.setAttributeNS(null,'stroke-width','1');
+  this.l.setAttributeNS(null,'font-size','200');
+  this.l.setAttributeNS(null,'x',x);
+  this.l.setAttributeNS(null,'y',y);
   this.l.appendChild(document.createTextNode(this.id));
   this.l.addEventListener('click',bind(this.rename,this),false);
   this.net.svg.appendChild(this.l);
@@ -224,12 +230,12 @@ Transition.prototype.updateView = function() {
   var x2 = this.pos.x - this.net.transitionWidth/2;
   var y2 = this.pos.y - this.net.transitionHeight/2;
   this.t.id = this.id; // TODO: filter/translate to get valid ids only!
-  this.t.setAttribute('x',x2); 
-  this.t.setAttribute('y',y2); 
-  this.t.setAttribute('width',this.net.transitionWidth);
-  this.t.setAttribute('height',this.net.transitionHeight);
-  this.l.setAttribute('x',x2+2*this.net.transitionWidth);
-  this.l.setAttribute('y',y2+this.net.transitionHeight);
+  this.t.setAttributeNS(null,'x',x2); 
+  this.t.setAttributeNS(null,'y',y2); 
+  this.t.setAttributeNS(null,'width',this.net.transitionWidth);
+  this.t.setAttributeNS(null,'height',this.net.transitionHeight);
+  this.l.setAttributeNS(null,'x',x2+2*this.net.transitionWidth);
+  this.l.setAttributeNS(null,'y',y2+this.net.transitionHeight);
 }
 Transition.prototype.toString = function() {
   return 'Transition('+this.id+','+this.pos+')';
@@ -260,7 +266,7 @@ Transition.prototype.clickHandler = function(event) {
 }
 Transition.prototype.mousedownHandler = function(event) {
   // message('Transition.mousedownHandler');
-  this.t.style.stroke = 'green';
+  this.t.setAttributeNS(null,'stroke','green');
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might not hit small shapes
   if (this.net.cursor.mode==='m') {
@@ -304,7 +310,7 @@ Transition.prototype.newArcHandler = function(event) {
 //       (the one added to the svg, not the one added to the element) - why?
 Transition.prototype.mouseupHandler = function(event) {
   // message('Transition.mouseupHandler');
-  this.t.style.stroke = 'black';
+  this.t.setAttributeNS(null,'stroke','black');
   if ((this.net.cursor.mode==='a')
     &&(this.net.selection instanceof Arc)) {
     this.net.svg.removeChild(this.net.selection.a); 
@@ -334,10 +340,10 @@ function Arc(source,target) {
   this.source = source;
   this.target = target;
 
-  this.a = document.createElementNS(this.source.net.svgNS,'path');
+  this.a = document.createElementNS(svgNS,'path');
   this.a.arc = this;
-  this.a.setAttribute('style', 'stroke: black; stroke-width: 10px');
-  this.a.setAttribute('class','arc');
+  this.a.setAttributeNS(null,'style', 'stroke: black; stroke-width: 10px');
+  this.a.setAttributeNS(null,'class','arc');
   this.a.addEventListener('click',bind(this.clickHandler,this),false);
   this.updateView();
 }
@@ -346,7 +352,7 @@ Arc.prototype.updateView = function() {
   var sourceCon = this.source.connectorFor(this.target.pos);
   var targetCon = this.target.connectorFor(this.source.pos);
 
-  this.a.setAttribute('d','M '+sourceCon.x+' '+sourceCon.y
+  this.a.setAttributeNS(null,'d','M '+sourceCon.x+' '+sourceCon.y
                          +'L '+targetCon.x+' '+targetCon.y);
 }
 Arc.prototype.toString = function() {
@@ -362,7 +368,6 @@ function Cursor(net) {
   this.net = net;
   this.pos = new Pos(0,0);
 
-  var svgNS   = this.net.svgNS;
   var tWidth  = this.net.transitionWidth/5;
   var tHeight = this.net.transitionHeight/5;
   var r       = this.net.r/5;
@@ -416,7 +421,7 @@ Cursor.prototype.connectorFor = function(pos) {
   return this.pos;
 }
 Cursor.prototype.updatePos = function(p) {
-  this.palette.setAttribute('transform','translate('+p.x+','+p.y+')');
+  this.palette.setAttributeNS(null,'transform','translate('+p.x+','+p.y+')');
   // message('Cursor.updatePos');
   this.pos.x = p.x;
   this.pos.y = p.y;
@@ -424,13 +429,13 @@ Cursor.prototype.updatePos = function(p) {
 
 function Net(id) {
 
-  this.svg = document.createElementNS(this.svgNS,'svg');
+  this.svg = document.createElementNS(svgNS,'svg');
   this.svg.id = id;
-  this.svg.setAttribute('version','1.1');
-  this.svg.setAttribute('width','10cm');
-  this.svg.setAttribute('height','10cm');
-  this.svg.setAttribute('viewBox','0 0 5000 3000');
-  this.svg.setAttribute('clip','0 0 5000 3000');
+  this.svg.setAttributeNS(null,'version','1.1');
+  this.svg.setAttributeNS(null,'width','10cm');
+  this.svg.setAttributeNS(null,'height','10cm');
+  this.svg.setAttributeNS(null,'viewBox','0 0 5000 3000');
+  this.svg.setAttributeNS(null,'clip','0 0 5000 3000');
   this.svg.style.margin = '10px';
 
   // opera doesn't register mousemove events where there is no svg content,
@@ -473,8 +478,7 @@ function Net(id) {
 
 }
 
-Net.prototype.svgNS = 'http://www.w3.org/2000/svg';
-Net.prototype.r           = 400;
+Net.prototype.r                     = 400;
 // TODO: asymmetric transition shape calls for rotation ability
 Net.prototype.transitionWidth       = Net.prototype.r/5;
 Net.prototype.transitionHeight      = 2*Net.prototype.r;
@@ -493,31 +497,31 @@ Net.prototype.toString = function() {
 }
 
 Net.prototype.addBackdrop = function () {
-  this.svgBackdrop = document.createElementNS(this.svgNS,'rect');
+  this.svgBackdrop = document.createElementNS(svgNS,'rect');
     this.svgBackdrop.id = 'svgBackdrop';
     // TODO: read svg viewport spec again, viewBox, viewport and aspect..
     //       how to calculate the visible x/y-coordinates automatically?
-    this.svgBackdrop.setAttribute('width',5000); 
-    this.svgBackdrop.setAttribute('height',5000);
-    this.svgBackdrop.setAttribute('x',0);
-    this.svgBackdrop.setAttribute('y',-1000);
-    this.svgBackdrop.setAttribute('style','fill: lightgrey');
+    this.svgBackdrop.setAttributeNS(null,'width',5000); 
+    this.svgBackdrop.setAttributeNS(null,'height',5000);
+    this.svgBackdrop.setAttributeNS(null,'x',0);
+    this.svgBackdrop.setAttributeNS(null,'y',-1000);
+    this.svgBackdrop.setAttributeNS(null,'style','fill: lightgrey');
     this.svg.appendChild(this.svgBackdrop);
 }
 Net.prototype.addDefs = function () {
-  var defs   = document.createElementNS(this.svgNS,'defs');
-  var marker = document.createElementNS(this.svgNS,'marker');
+  var defs   = document.createElementNS(svgNS,'defs');
+  var marker = document.createElementNS(svgNS,'marker');
 
   marker.id = "Arrow";
-  marker.setAttribute('viewBox','0 0 10 10');
-  marker.setAttribute('refX','10');
-  marker.setAttribute('refY','5');
-  marker.setAttribute('markerUnits','strokeWidth');
-  marker.setAttribute('markerWidth','10');
-  marker.setAttribute('markerHeight','10');
-  marker.setAttribute('orient','auto');
-  var path = document.createElementNS(this.svgNS,'path');
-  path.setAttribute('d','M 0 0 L 10 5 L 0 10 z');
+  marker.setAttributeNS(null,'viewBox','0 0 10 10');
+  marker.setAttributeNS(null,'refX','10');
+  marker.setAttributeNS(null,'refY','5');
+  marker.setAttributeNS(null,'markerUnits','strokeWidth');
+  marker.setAttributeNS(null,'markerWidth','10');
+  marker.setAttributeNS(null,'markerHeight','10');
+  marker.setAttributeNS(null,'orient','auto');
+  var path = document.createElementNS(svgNS,'path');
+  path.setAttributeNS(null,'d','M 0 0 L 10 5 L 0 10 z');
   marker.appendChild(path);
 
   defs.appendChild(marker);
