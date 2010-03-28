@@ -27,8 +27,8 @@ function patchStyle(x) {
     var jsval  = jsvals[i];
     if (x.style[jsval]) style.push(cssval+': '+x.style[jsval]);
   }
-  listProperties('x.style'+(x.id?'('+x.id+'): ':': '),x.style);
-  message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
+  // listProperties('x.style'+(x.id?'('+x.id+'): ':': '),x.style);
+  // message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
   x.style.cssText = style.join('; ');
 }
 
@@ -76,7 +76,8 @@ Place.prototype.addLabel = function (x,y) {
   this.net.svg.appendChild(this.l);
 }
 Place.prototype.rename = function(event) {
-  this.l.firstChild.data = prompt('new place name? ',this.id);
+  var name = prompt('new place name? ',this.id);
+  if (name!=null) this.l.firstChild.data = name;
   this.updateView();
 }
 Place.prototype.updateView = function() {
@@ -223,7 +224,8 @@ Transition.prototype.addLabel = function (x,y) {
   this.net.svg.appendChild(this.l);
 }
 Transition.prototype.rename = function(event) {
-  this.l.firstChild.data = prompt('new transition name? ',this.id);
+  var name = prompt('new transition name? ',this.id);
+  if (name!=null) this.l.firstChild.data = name;
   this.updateView();
 }
 Transition.prototype.updateView = function() {
@@ -435,7 +437,7 @@ function Net(id) {
   this.svg.setAttributeNS(null,'width','10cm');
   this.svg.setAttributeNS(null,'height','10cm');
   this.svg.setAttributeNS(null,'viewBox','0 0 5000 3000');
-  this.svg.setAttributeNS(null,'clip','0 0 5000 3000');
+  this.svg.setAttributeNS(null,'clip','0 0 5000 3000'); // TODO: is this right?
   this.svg.style.margin = '10px';
 
   // opera doesn't register mousemove events where there is no svg content,
@@ -465,17 +467,7 @@ function Net(id) {
   this.arcs        = [];
   this.selection   = null;
 
-  this.help = document.createElement('pre');
-  this.help.id = 'netHelp';
-  this.help.appendChild(document.createTextNode(
-    ['press "m" and use mouse to move nodes'
-    ,'press "t" and click to add transitions'
-    ,'press "p" and click to add places'
-    ,'press "a" and drag from node to add arcs'
-    ,'press "d" and click to delete nodes or arcs'
-    ].join("\n")
-    ));
-
+  this.addHelp();
 }
 
 Net.prototype.r                     = 400;
@@ -507,6 +499,35 @@ Net.prototype.addBackdrop = function () {
     this.svgBackdrop.setAttributeNS(null,'y',-1000);
     this.svgBackdrop.setAttributeNS(null,'style','fill: lightgrey');
     this.svg.appendChild(this.svgBackdrop);
+}
+Net.prototype.addHelp = function () {
+  this.help = document.createElementNS(svgNS,'text');
+  this.help.setAttributeNS(null,'fill','blue');
+  this.help.setAttributeNS(null,'font-size','200');
+  this.help.id = 'netHelp';
+  var lines = ['press "m" then use mouse to move nodes'
+              ,'press "t" then click to add transitions'
+              ,'press "p" then click to add places'
+              ,'press "a" then drag from node to add arcs'
+              ,'press "d" then click to delete nodes or arcs'
+              ];
+  for (var l in lines) {
+    var tspan = document.createElementNS(svgNS,'tspan');
+    tspan.setAttributeNS(null,'dy','1em');
+    tspan.setAttributeNS(null,'x','0em');
+    tspan.appendChild(document.createTextNode(lines[l]));
+    this.help.appendChild(tspan);
+  }
+  this.help.style.display = 'none';
+  this.svg.appendChild(this.help);
+}
+Net.prototype.toggleHelp = function() {
+  if (this.help.style.display==='none') {
+    this.svg.removeChild(this.help);
+    this.svg.insertBefore(this.help,null);
+    this.help.style.display='inline';
+  } else
+    this.help.style.display='none';
 }
 Net.prototype.addDefs = function () {
   var defs   = document.createElementNS(svgNS,'defs');
@@ -540,12 +561,15 @@ Net.prototype.client2canvas = function (event) {
 Net.prototype.clickHandler = function (event) {
   // message('Net.clickHandler '+this.cursor.mode);
   var p = this.client2canvas(event);
-  if (this.cursor.mode=='p')
-    this.addPlace(prompt('name of new place: ','p'+this.clicks++)
-                 ,p.x,p.y);
-  else if (this.cursor.mode=='t')
-    this.addTransition(prompt('name of new transition: ','t'+this.clicks++)
-                      ,p.x,p.y);
+  if (this.cursor.mode=='p') {
+    var defaultName = 'p'+this.clicks++;
+    var name = prompt('name of new place: ',defaultName);
+    if (name!=null) this.addPlace(name,p.x,p.y);
+  } else if (this.cursor.mode=='t') {
+    var defaultName = 't'+this.clicks++;
+    var name = prompt('name of new transition: ',defaultName);
+    if (name!=null) this.addTransition(name,p.x,p.y)
+  }
   return true;
 }
 
@@ -610,6 +634,7 @@ Net.prototype.keypressHandler = function (event) {
     case 'p': this.cursor.placeCursor(); break;
     case 'm': this.cursor.moveCursor(); break;
     case 'd': this.cursor.deleteCursor(); break;
+    case '?': this.toggleHelp(); break;
     default: this.cursor.defaultCursor();
   }
   // event.preventDefault(); // how to do this only inside svg?
