@@ -1,6 +1,52 @@
 var svgNS = 'http://www.w3.org/2000/svg';
 
-// bind function this-reference (allows us to register model object
+// ----------------- simple Petri net editor {{{
+//
+// (SVG only at the moment, might need to add VML backend for pre-IE9?)
+//
+// TODO: - add generic net traversal, as well as some specific output
+//         formats (SVG, VML, Javascript, JSON/XML?)
+//       - add token model and view objects
+//       - hook up to code generator / simulator
+//
+// we have a simple model object hierarchy, with each model object linked to a
+// single view object (the view is a simple shadow of the model, so if we want
+// to enable multiple views per model object, we could insert an interface for
+// registering views with model objects, so that all of the latter get
+// updated)
+//
+// Net(id)
+//  main object; holds svg element, list of places, transitions, and arcs,
+//  as well as current selection, cursor mode, and help text; converts mouse
+//  event to svg canvas coordinates; handles adding/removing nodes and arcs
+//
+// Node(nodeType)
+//  common prototype for places and transitions; has text label, can be
+//  renamed, moved, deleted, and connected (with other nodes not of the same
+//  type); keeps track of incoming and outgoing arcs, position, id, and
+//  embedding Net object; subtypes have view objects in addition to text
+//  label, can update their view after changes, can calculate where arcs
+//  from/to a given position should connect with the view shape
+//
+//  Place(net,id,pos)
+//  Transition(net,id,pos)
+//
+// Arc(source,target)
+//  connects a source and a target node, has view object, can update its
+//  view after changes, can be deleted; this is an auxiliary object that
+//  mostly just follows whatever happens to the source and target nodes it is
+//  registered with
+//
+// Cursor(net)
+//  tracks Net it belongs to, mode of Net-global cursor operation (insert
+//  place or transition, connect nodes by arcs, delete nodes, toggle help);
+//  has a view that should help to indicate cursor mode
+//  
+// -------------------------------- }}}
+
+// ----------------------------- auxiliaries {{{
+
+// bind function 'this'-reference (allows us to register model object
 // methods as view object event listeners while avoiding explicit
 // view->model references)
 function bind(f,x) {
@@ -17,9 +63,13 @@ function bind(f,x) {
 //       ('esc' might lose placeCursor attributes, then 'p' gives 
 //       black cursor - when this happens, the individual style 
 //       attributes of the javascript object are also gone?)
-//       ==> try to use object attributes instead of style properties,
-//           replacing x.style.prop= with x.setAttributeNS(null,'prop',)
-//           where possible
+// ==> try to use object attributes instead of style properties,
+//     replacing x.style.prop= with x.setAttributeNS(null,'prop',)
+//     where possible
+// TODO: instead of patching after modification, which is ugly and easy to
+//       forget provide a patching modification operation (which, for opera,
+//       could simply modify the style attributes but, for firefox, needs to
+//       do some string munging on cssText..
 function patchStyle(x) {
   var cssvals = ['cursor','display'];
   var jsvals  = ['cursor','display'];
@@ -33,6 +83,10 @@ function patchStyle(x) {
   // message('patchStyle'+(x.id?'('+x.id+'): ':': ')+style.join('; '));
   x.style.cssText = style.join('; ');
 }
+
+// ----------------------------- }}}
+
+// ----------------------------- Node {{{
 
 // TODO: how to make constructor "parameters" net,id,pos explicit?
 function Node(nodeType) {
@@ -124,6 +178,10 @@ Node.prototype.unregisterArcAtTarget = function(arc) {
   delete this.arcsIn[this.arcsIn.indexOf(arc)];
 }
 
+// ----------------------------- }}}
+
+// ----------------------------- Place {{{
+
 function Place(net,id,pos) {
   this.net     = net;
   this.id      = id;
@@ -172,21 +230,24 @@ Place.prototype.connectorFor = function(pos) {
   return this.pos.add(vec.scale(Net.prototype.r/l));
 }
 Place.prototype.clickHandler = function(event) {
-  // message('Place.clickHandler');
   if (this.net.cursor.mode==='d') this.net.removePlace(this);
   return true;
   // event.stopPropagation(); // avoid net clickHandler
 }
 Place.prototype.mousedownHandler = function(event) {
-  // message('Place.mousedownHandler');
-  this.p.setAttributeNS(null,'stroke','green');
+  this.p.setAttributeNS(null,'stroke','green'); 
+    // TODO: - have a 'selected' CSS class for this
+    //       - generically change rendering, move code to Node()
   Node.prototype.mousedownHandler.call(this,event);
 }
 Place.prototype.mouseupHandler = function(event) {
-  // message('Place.mouseupHandler ');
   this.p.setAttributeNS(null,'stroke','black');
   Node.prototype.mouseupHandler.call(this,event);
 }
+
+// ----------------------------- }}}
+
+// ----------------------------- Transition {{{
 
 function Transition(net,id,pos) {
   this.net     = net;
@@ -257,21 +318,22 @@ Transition.prototype.connectorFor = function(pos) {
 }
 // TODO: slim shapes are hard to hit, perhaps add a transparent halo?
 Transition.prototype.clickHandler = function(event) {
-  // message('Transition.clickHandler');
   if (this.net.cursor.mode==='d') this.net.removeTransition(this);
   // event.stopPropagation(); // avoid net clickHandler
   return true;
 }
 Transition.prototype.mousedownHandler = function(event) {
-  // message('Transition.mousedownHandler');
   this.t.setAttributeNS(null,'stroke','green');
   Node.prototype.mousedownHandler.call(this,event);
 }
 Transition.prototype.mouseupHandler = function(event) {
-  // message('Transition.mouseupHandler');
   this.t.setAttributeNS(null,'stroke','black');
   Node.prototype.mouseupHandler.call(this,event);
 }
+
+// ----------------------------- }}}
+
+// ----------------------------- Arc {{{
 
 function Arc(source,target) {
   this.source = source;
@@ -285,7 +347,6 @@ function Arc(source,target) {
   this.updateView();
 }
 Arc.prototype.updateView = function() {
-  // message('Arc.updateView');
   var sourceCon = this.source.connectorFor(this.target.pos);
   var targetCon = this.target.connectorFor(this.source.pos);
 
@@ -300,6 +361,10 @@ Arc.prototype.clickHandler = function(event) {
   if (this.source.net.cursor.mode==='d') this.source.net.removeArc(this);
   return true;
 }
+
+// ----------------------------- }}}
+
+// ----------------------------- Cursor {{{
 
 function Cursor(net) {
   this.net = net;
@@ -354,15 +419,17 @@ Cursor.prototype.placeCursor = function () {
   patchStyle(this.place);
 }
 Cursor.prototype.connectorFor = function(pos) {
-  // message('Cursor.connectorFor');
   return this.pos;
 }
 Cursor.prototype.updatePos = function(p) {
   this.palette.setAttributeNS(null,'transform','translate('+p.x+','+p.y+')');
-  // message('Cursor.updatePos');
   this.pos.x = p.x;
   this.pos.y = p.y;
 }
+
+// ----------------------------- }}}
+
+// ----------------------------- Net {{{
 
 function Net(id) {
 
@@ -405,6 +472,7 @@ function Net(id) {
   this.addHelp();
 }
 
+// TODO: shouldn't the following view parameters be in their model objects?
 Net.prototype.r                     = 400;
 // TODO: asymmetric transition shape calls for rotation ability
 Net.prototype.transitionWidth       = Net.prototype.r/5;
@@ -523,6 +591,7 @@ Net.prototype.addArc = function (source,target) {
 }
 Net.prototype.removeArc = function (arc) {
   delete this.arcs[this.arcs.indexOf(arc)];
+  // TODO: this should move to Arc()
   arc.source.unregisterArcAtSource(arc);
   arc.target.unregisterArcAtTarget(arc);
   this.svg.removeChild(arc.a);
@@ -536,6 +605,7 @@ Net.prototype.addPlace = function (id,x,y) {
 }
 Net.prototype.removePlace = function (place) {
   delete this.places[place.id];
+  // TODO: this should move to NODE()
   for (var arcIn in place.arcsIn) this.removeArc(place.arcsIn[arcIn]);
   for (var arcOut in place.arcsOut) this.removeArc(place.arcsOut[arcOut]);
   this.svg.removeChild(place.p);
@@ -550,6 +620,7 @@ Net.prototype.addTransition = function (id,x,y) {
 }
 Net.prototype.removeTransition = function (transition) {
   delete this.transitions[transition.id];
+  // TODO: this should move to NODE()
   for (var arcIn in transition.arcsIn) this.removeArc(transition.arcsIn[arcIn]);
   for (var arcOut in transition.arcsOut) this.removeArc(transition.arcsOut[arcOut]);
   this.svg.removeChild(transition.t);
@@ -585,4 +656,6 @@ Net.prototype.mousemoveHandler = function (event) {
   this.cursor.updatePos(p);
   return true;
 }
+
+// ----------------------------- }}}
 
