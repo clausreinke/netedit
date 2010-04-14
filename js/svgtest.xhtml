@@ -9,12 +9,13 @@
 <head>
 
 <style type="text/css">
-*.place      { stroke-width: 10px }
-*.transition { stroke-width: 10px }
-*.arc        { stroke-width: 10px; marker-end: url(#Arrow) }
+*.place      { }
+*.transition { }
+*.arc        { }
 
-svg          {  }
-.netHelp     {  }
+#svg         { float: left }
+div#viewer   { float: right; margin: 10px; border: solid 1px blue; 
+               height: 24em; width: 12em; overflow: scroll }
 div#messages { clear: both; margin: 10px; border: solid 1px blue; 
                height: 10em; overflow: scroll }
 </style>
@@ -22,9 +23,59 @@ div#messages { clear: both; margin: 10px; border: solid 1px blue;
 <script type="text/javascript" src="debug.js"/>
 <script type="text/javascript" src="vector.js"/>
 <script type="text/javascript" src="net.js"/>
-<script type="text/javascript">
+<script type="text/javascript"><![CDATA[
 function initNet() {
+  // wrap(Place.prototype,'mousedownHandler');
+  // wrap(Place.prototype,'mouseupHandler');
+  // wrap(window,'patchStyle',{'before':function(x) { message('before '+x.id); }});
+
+  /*
+  var events = [];
+  wrap(Element.prototype,'addEventListener', // TODO: doesn't work in firefox!
+    {'before':function(e,l,c) { 
+                message('aEL '+this+(this.id?this.id:'')+' '+e);
+                }
+    ,'around':function(aEL,e,l,c) { 
+                events[e]++;
+                return aEL.apply(this,[e,l,c]);
+                }
+    });
+  wrap(Element.prototype,'removeEventListener',
+    {'after':function(e,l,c) { 
+                message('rEL '+this+(this.id?this.id:'')+' '+e);
+                }
+    });
+  */
+
   var net  = new Net('net');
+
+  /*
+  var xhr = new XMLHttpRequest(); // browser-specific
+  message(xhr);
+  xhr.open('GET','file:c:/private/archive/pnml/desel-esparza-5-2.pnml',false);
+  xhr.send(null);
+  var pnml = xhr.responseXML;
+  message(pnml);
+  net.fromPNML(pnml);
+  message(xhr.responseText);
+  */
+  if (document.implementation && document.implementation.createDocument) {
+    var pnml = document.implementation.createDocument(null,null,null);
+    pnml.async = false;
+    // pnml.load('pnml/desel-esparza-5-2.pnml');
+    // pnml.load('pnml/desel-esparza-5-4.pnml');
+    // pnml.load('pnml/desel-esparza-commoners.pnml');
+    // pnml.load('pnml/Piscine.pnml');
+    // pnml.load('pnml/SharedMemory-Hlpn.pnml');
+    // pnml.load('pnml/SharedMemory.pnml');
+    // pnml.load('pnml/Token-ring.pnml'); // fails
+    // pnml.load('pnml/standardExample.pnml');
+    pnml.load('pnml/philo.pnml');
+    message(pnml);
+    net.fromPNML(pnml,4,100);
+  }
+
+  /*
   var in1  = net.addPlace('in1' , 1000, 1000);
   var in2  = net.addPlace('in2' , 1000, 2000);
   var t1   = net.addTransition('t1',2000,1500);
@@ -35,6 +86,7 @@ function initNet() {
   var a2 = net.addArc(in2,t1);
   var a3 = net.addArc(t1,out1);
   var a4 = net.addArc(t1,out2);
+  */
 
   // net.removeArc(a2);
   // net.removePlace(out1);
@@ -47,14 +99,26 @@ function initNet() {
   var ls = net.toString().split("\n");
   for (var l in ls) message(ls[l]);
 
+  /*
+  message('listeners have been registered for these events:');
+  for (var ex in events) {
+    message(ex);
+    (function (ex) { // separate ex value from loop index
+      document.documentElement.addEventListener(ex,function(event) {
+        message(ex+event);
+      },true); }(ex));
+  }
+  */
+
 }
 
-</script>
+]]></script>
 
 </head>
 
-<body onload="initNet()">
+<body onload="initNet();JSEval('messages');ObjectViewer('viewer');">
 
+<div id='viewer'/>
 <div id='messages'/>
 
 </body>
