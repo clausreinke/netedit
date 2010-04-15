@@ -1,9 +1,15 @@
 
 // use document element 'messages' as an output console
 function message(msg,div) {
-  msgs = document.getElementById(div==null?'messages':div);
+  var msgs = document.getElementById(div==null?'messages':div);
   msgs.appendChild(document.createTextNode(msg));
   msgs.appendChild(document.createElement("br"));
+}
+function messagePre(msg,div) {
+  var msgs = document.getElementById(div==null?'messages':div);
+  var pre  = document.createElement('pre');
+  pre.appendChild(document.createTextNode(msg));
+  msgs.appendChild(pre);
 }
 
 // wrap object methods, for debugging purposes, with optional before code;
@@ -49,6 +55,8 @@ function listProperties(pre,x,without) {
   message('// ----end------ listing properties for '+pre);
 }
 
+// TODO: - use querySelector
+//       - support resize/hide
 function ObjectViewer(consoleID) {
   var console = document.getElementById(consoleID);
 
@@ -101,18 +109,23 @@ function JSEval(consoleID) {
     },false);
 }
 
-// ------------ miscellaneous experiments
-
-function listAttributes(pre,x,ns) {
-  message('// ------------- listing attributes for '+pre);
-  for (var a in x.attributes) {
-    var xa = x.attributes[a];
-    if (xa && xa.name && xa.value)
-    message(pre+'.'+a+" = "+x.getAttribute(a)
-                     +' | '+x.getAttributeNS(ns,a)
-                     +' | '+xa.name+'='+xa.value);
-    if (a && a.value)
-      message("// "+pre+a+".value : "+a.value);
+function listXML(prefix,xml) {
+  var text = [];
+  if (xml.nodeType===3) // just a text node
+    text = [prefix+xml.textContent];
+  else {
+    var tag      = '<'+xml.nodeName;
+    var attrs    = xml.attributes;
+    if (attrs)
+      for (var i=0; i<attrs.length; i++)
+        tag += ' '+attrs.item(i).nodeName+'='+attrs.item(i).nodeValue;
+    if (xml.hasChildNodes && xml.hasChildNodes()) {
+      text = [prefix+tag+'>'];
+      for (var i=0; i<xml.childNodes.length; i++)
+        text = text.concat(listXML(prefix+' ',xml.childNodes.item(i)));
+      text.push(prefix+'</'+xml.nodeName+'>');
+    } else
+      text = [prefix+tag+'/>'];
   }
+  return text;
 }
-
