@@ -7,7 +7,7 @@ var svgNS = 'http://www.w3.org/2000/svg';
 //
 // TODO: - add generic net traversal, as well as
 //          - static output formats (SVG, VML)
-//          - import/export formats (Javascript/JSON, PNML)
+//          - import/export formats (PNML - import partially done)
 //       - add token model and view objects
 //       - support node resize (what about transition rotation?)
 //       - support multipoint arcs
@@ -15,6 +15,9 @@ var svgNS = 'http://www.w3.org/2000/svg';
 //       - hook up to code generator / simulator
 //       - generalize view handling (generic view objects instead of
 //          Place/Transition/Arc-specific .p/.t/.a and .l)
+//       - allow default styling to be overridden via css (two issues:
+//          1. don't specify local style if applicable style exists
+//          2. we currently avoid css-style in favour of svg attributes)
 //       - have separate svg groups to add nodes/arcs or labels to,
 //         to ensure that all labels overlap all other objects
 //       - may need to prevent default event handling (overlap with
@@ -109,16 +112,19 @@ Node.prototype.addLabel = function (x,y) {
   this.l.setAttributeNS(null,'class','label');
   this.l.setAttributeNS(null,'stroke','red');
   this.l.setAttributeNS(null,'stroke-width','1');
-  this.l.setAttributeNS(null,'font-size','200');
+  this.l.setAttributeNS(null,'font-size','100');
   this.l.setAttributeNS(null,'x',x);
   this.l.setAttributeNS(null,'y',y);
-  this.l.appendChild(document.createTextNode(this.id));
+  this.l.appendChild(document.createTextNode(this.name));
   this.l.addEventListener('click',bind(this.rename,this),false);
   this.net.svg.appendChild(this.l);
 }
 Node.prototype.rename = function(event) {
-  var name = prompt('new '+this.nodeType+' name? ',this.id);
-  if (name!=null) this.l.firstChild.data = name;
+  var name = prompt('new '+this.nodeType+' name? ',this.name);
+  if (name!=null) {
+    this.l.firstChild.data = name;
+    this.name              = name;
+  }
   this.updateView();
 }
 Node.prototype.toString = function() {
@@ -193,9 +199,10 @@ Node.prototype.unregisterArcAtTarget = function(arc) {
 
 // ----------------------------- Place {{{
 
-function Place(net,id,pos,r) {
+function Place(net,id,pos,r,name) {
   this.net     = net;
   this.id      = id;
+  this.name    = name;
   this.pos     = pos;
   this.r       = r;
   this.arcsIn  = [];
@@ -262,9 +269,10 @@ Place.prototype.mouseupHandler = function(event) {
 
 // ----------------------------- Transition {{{
 
-function Transition(net,id,pos,width,height) {
+function Transition(net,id,pos,width,height,name) {
   this.net     = net;
   this.id      = id;
+  this.name    = name;
   this.pos     = pos;
   this.width   = width;
   this.height  = height;
@@ -284,7 +292,7 @@ Transition.prototype.addView = function () {
   this.t.addEventListener('click',bind(this.clickHandler,this),false);
   this.t.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
   this.t.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
-  this.addLabel(this.pos.x+1.5*this.width
+  this.addLabel(this.pos.x+0.6*this.width
                ,this.pos.y+0.5*this.height);
 }
 Transition.prototype.transitionShape = function (x,y,w,h) {
@@ -450,15 +458,18 @@ Cursor.prototype.updatePos = function(p) {
 
 // ----------------------------- Net {{{
 
-function Net(id) {
+function Net(id,width,height) {
 
-  this.svg = document.createElementNS(svgNS,'svg');
+  this.id     = id;
+  this.width  = width;
+  this.height = height;
+  this.svg    = document.createElementNS(svgNS,'svg');
   this.svg.id = id;
   this.svg.setAttributeNS(null,'version','1.1');
   this.svg.setAttributeNS(null,'width','10cm');
   this.svg.setAttributeNS(null,'height','10cm');
-  this.svg.setAttributeNS(null,'viewBox','0 0 5000 3000');
-  this.svg.setAttributeNS(null,'clip','0 0 5000 3000'); // TODO: is this right?
+  this.svg.setAttributeNS(null,'viewBox','0 0 '+width+' '+height);
+  this.svg.setAttributeNS(null,'clip','0 0 '+width+' '+height); // TODO: is this right?
   this.svg.style.margin = '10px';
 
   // opera doesn't register mousemove events where there is no svg content,
@@ -492,14 +503,15 @@ function Net(id) {
 }
 
 // TODO: shouldn't the following view parameters be in their model objects?
-Net.prototype.r                     = 400;
-// TODO: asymmetric transition shape calls for rotation ability
-Net.prototype.transitionWidth       = Net.prototype.r/5;
+Net.prototype.r                     = 100;
+// TODO: asymmetric transition shape would be preferred, to avoid
+//        impressions of duration, but that calls for rotation ability
+Net.prototype.transitionWidth       = 2*Net.prototype.r;
 Net.prototype.transitionHeight      = 2*Net.prototype.r;
 
 Net.prototype.toString = function() {
   var r = '';
-  r += this.svg.id+"\n";
+  r += this.id+"\n";
   r += "places: ";
   for (var k in this.places) r += '['+k+"="+this.places[k]+']';
   r += "\ntransitions: ";
@@ -508,6 +520,83 @@ Net.prototype.toString = function() {
   for (var k in this.arcs) r +=  '['+this.arcs[k].source.id
                                +'->'+this.arcs[k].target.id+']';
   return r;
+}
+
+Net.prototype.toPNML = function() {
+  var pnml = document.implementation.createDocument(null,'pnml',null);
+  var dimension = function(x,y) {
+                   var d = document.createElement('dimension');
+                   d.setAttribute('x',x);
+                   d.setAttribute('y',y);
+                   return d;
+                 }
+  var position = function(x,y) {
+                   var p = document.createElement('position');
+                   p.setAttribute('x',x);
+                   p.setAttribute('y',y);
+                   return p;
+                 }
+  var graphics = function() {
+                   var g = document.createElement('graphics');
+                   for (var i=0; i<arguments.length; i++)
+                    g.appendChild(arguments[i]);
+                   return g;
+                 }
+  var name = function(text) {
+              var n = document.createElement('name');
+              var t = document.createElement('text');
+              t.appendChild(document.createTextNode(text));
+              n.appendChild(t);
+              return n;
+             }
+  var place = function(id,x,y) {
+                var t = document.createElement('place');
+                t.setAttribute('id',id);
+                t.appendChild(graphics(position(x,y)));
+               }
+  var transition = function(id,x,y) {
+                    var t = document.createElement('transition');
+                    t.setAttribute('id',id);
+                    t.appendChild(graphics(position(x,y)));
+                   }
+  var net = function(type,id,children) {
+              var n = document.createElement('net');
+              n.setAttribute('type',type);
+              n.setAttribute('id',id);
+              for (var c in children) n.appendChild(children[c]);
+              return n;
+            }
+  var fragment = function() {
+                   var f = document.createDocumentFragment();
+                   for (var i=0; i<arguments.length; i++)
+                    f.appendChild(arguments[i]);
+                   return f;
+                 }
+  var ts = this.transitions.map(function(t){
+                    return transition(t.id,t.pos.x,t.pos.y);
+                  });
+  var n = net('http://www.petriweb.org/specs/pnml','net'
+             ,[name('example')
+              ,graphics(dimension(this.width,this.height)
+                       ,position(0,0))
+              ].concat(ts));
+  message(this);
+  message('transitions: '+this.transitions.length);
+  pnml.documentElement.appendChild(n);
+  messagePre(listXML('',pnml.documentElement).join("\n"));
+  
+  /*
+  var r = '';
+  r += this.id+"\n";
+  r += "places: ";
+  for (var k in this.places) r += '['+k+"="+this.places[k]+']';
+  r += "\ntransitions: ";
+  for (var k in this.transitions) r += '['+k+"="+this.transitions[k]+']';
+  r += "\narcs: ";
+  for (var k in this.arcs) r +=  '['+this.arcs[k].source.id
+                               +'->'+this.arcs[k].target.id+']';
+  return r;
+  */
 }
 
 Net.prototype.fromPNML = function(pnml,scale,unit) {
@@ -523,7 +612,7 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
       var x     = pos.attributes['x'].nodeValue;
       var y     = pos.attributes['y'].nodeValue;
       message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
-      this.addPlace(id,x*scale,y*scale,unit);
+      this.addPlace(id,x*scale,y*scale,unit,name?name.textContent:null);
     }
     var transitions = pnml.querySelectorAll('transition');
     for (var i=0; i<transitions.length; i++) {
@@ -534,7 +623,7 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
       var x     = pos.attributes['x'].nodeValue;
       var y     = pos.attributes['y'].nodeValue;
       message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
-      this.addTransition(id,x*scale,y*scale,2*unit,2*unit);
+      this.addTransition(id,x*scale,y*scale,2*unit,2*unit,name?name.textContent:null);
     }
     var arcs = pnml.querySelectorAll('arc');
     for (var i=0; i<arcs.length; i++) {
@@ -559,8 +648,9 @@ Net.prototype.addBackdrop = function () {
     this.svgBackdrop.id = 'svgBackdrop';
     // TODO: read svg viewport spec again, viewBox, viewport and aspect..
     //       how to calculate the visible x/y-coordinates automatically?
-    this.svgBackdrop.setAttributeNS(null,'width',5000); 
-    this.svgBackdrop.setAttributeNS(null,'height',5000);
+    var maxExtent = Math.max(this.width,this.height);
+    this.svgBackdrop.setAttributeNS(null,'width',maxExtent); 
+    this.svgBackdrop.setAttributeNS(null,'height',maxExtent);
     this.svgBackdrop.setAttributeNS(null,'x',0);
     this.svgBackdrop.setAttributeNS(null,'y',-1000);
     this.svgBackdrop.setAttributeNS(null,'style','fill: lightgrey');
@@ -660,8 +750,9 @@ Net.prototype.removeArc = function (arc) {
   this.svg.removeChild(arc.a);
 }
 
-Net.prototype.addPlace = function (id,x,y,r) {
-  var place = new Place(this,id,new Pos(x,y),r?r:this.r);
+Net.prototype.addPlace = function (id,x,y,r,name) {
+  var place = new Place(this,id,new Pos(x,y)
+                       ,r?r:this.r,name?name:id);
   this.places[id] = place;
   this.svg.appendChild(place.p);
   return place;
@@ -675,10 +766,11 @@ Net.prototype.removePlace = function (place) {
   this.svg.removeChild(place.l);
 }
 
-Net.prototype.addTransition = function (id,x,y,w,h) {
+Net.prototype.addTransition = function (id,x,y,w,h,name) {
   var transition = new Transition(this,id,new Pos(x,y)
                                  ,w?w:this.transitionWidth
-                                 ,h?h:this.transitionHeight);
+                                 ,h?h:this.transitionHeight
+                                 ,name?name:id);
   this.transitions[id] = transition;
   this.svg.appendChild(transition.t);
   return transition;
