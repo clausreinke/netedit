@@ -181,7 +181,7 @@ function listXML(prefix,xml) {
       tag += ' xmlns="'+xml.namespaceURI+'"';
     if (attrs)
       for (var i=0; i<attrs.length; i++)
-        tag += ' '+attrs.item(i).nodeName+'='+attrs.item(i).nodeValue;
+        tag += ' '+attrs.item(i).nodeName+'="'+attrs.item(i).nodeValue+'"';
     if (xml.hasChildNodes && xml.hasChildNodes()) {
       text = [prefix+tag+'>'];
       for (var i=0; i<xml.childNodes.length; i++)
