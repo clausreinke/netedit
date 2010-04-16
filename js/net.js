@@ -11,7 +11,8 @@ var svgNS = 'http://www.w3.org/2000/svg';
 //       - add token model and view objects
 //       - support node resize (what about transition rotation?)
 //       - support multipoint arcs
-//       - support canvas scaling and scrolling
+//       - support canvas scaling and scrolling (how does that interact
+//          with the dummy background we need for event capture?)
 //       - hook up to code generator / simulator
 //       - generalize view handling (generic view objects instead of
 //          Place/Transition/Arc-specific .p/.t/.a and .l)
@@ -523,80 +524,49 @@ Net.prototype.toString = function() {
 }
 
 Net.prototype.toPNML = function() {
-  var pnml = document.implementation.createDocument(null,'pnml',null);
-  var dimension = function(x,y) {
-                   var d = document.createElement('dimension');
-                   d.setAttribute('x',x);
-                   d.setAttribute('y',y);
-                   return d;
-                 }
-  var position = function(x,y) {
-                   var p = document.createElement('position');
-                   p.setAttribute('x',x);
-                   p.setAttribute('y',y);
-                   return p;
-                 }
-  var graphics = function() {
-                   var g = document.createElement('graphics');
-                   for (var i=0; i<arguments.length; i++)
-                    g.appendChild(arguments[i]);
-                   return g;
-                 }
+  var element = function(tag,attributes,children) {
+                   var e = document.createElement(tag);
+                   for (var a in attributes) e.setAttribute(a,attributes[a]);
+                   for (var c in children) e.appendChild(children[c]);
+                   return e;
+                }
+  var dimension = function(x,y) { return element('dimension',{'x':x,'y':y}); }
+  var position  = function(x,y) { return element('position',{'x':x,'y':y}); }
+  var graphics  = function(children) { return element('graphics',{},children); }
   var name = function(text) {
-              var n = document.createElement('name');
-              var t = document.createElement('text');
-              t.appendChild(document.createTextNode(text));
-              n.appendChild(t);
-              return n;
+              return element('name',{}
+                            ,[element('text',{},[document.createTextNode(text)])]);
              }
-  var place = function(id,x,y) {
-                var t = document.createElement('place');
-                t.setAttribute('id',id);
-                t.appendChild(graphics(position(x,y)));
-               }
+  var place      = function(id,x,y) {
+                     return element('place',{'id':id},[graphics([position(x,y)])]);
+                   }
   var transition = function(id,x,y) {
-                    var t = document.createElement('transition');
-                    t.setAttribute('id',id);
-                    t.appendChild(graphics(position(x,y)));
+                    return element('transition',{'id':id},[graphics([position(x,y)])]);
                    }
   var net = function(type,id,children) {
-              var n = document.createElement('net');
-              n.setAttribute('type',type);
-              n.setAttribute('id',id);
-              for (var c in children) n.appendChild(children[c]);
-              return n;
+              return element('net',{'type':type,'id':id},children);
             }
-  var fragment = function() {
-                   var f = document.createDocumentFragment();
-                   for (var i=0; i<arguments.length; i++)
-                    f.appendChild(arguments[i]);
-                   return f;
-                 }
-  var ts = this.transitions.map(function(t){
-                    return transition(t.id,t.pos.x,t.pos.y);
-                  });
+
+  var ps = []; 
+    for(var pi in this.places) {
+      var p=this.places[pi];
+      ps.push(place(p.id,p.pos.x,p.pos.y));
+    };
+  var ts = [];
+    for(var ti in this.transitions) {
+      var t=this.transitions[ti];
+      ts.push(transition(t.id,t.pos.x,t.pos.y));
+    };
   var n = net('http://www.petriweb.org/specs/pnml','net'
              ,[name('example')
-              ,graphics(dimension(this.width,this.height)
-                       ,position(0,0))
-              ].concat(ts));
-  message(this);
-  message('transitions: '+this.transitions.length);
+              ,graphics([dimension(this.width,this.height)
+                        ,position(0,0)])
+              ].concat(ts,ps));
+
+  var pnml = document.implementation.createDocument(null,'pnml',null);
   pnml.documentElement.appendChild(n);
   messagePre(listXML('',pnml.documentElement).join("\n"));
   
-  /*
-  var r = '';
-  r += this.id+"\n";
-  r += "places: ";
-  for (var k in this.places) r += '['+k+"="+this.places[k]+']';
-  r += "\ntransitions: ";
-  for (var k in this.transitions) r += '['+k+"="+this.transitions[k]+']';
-  r += "\narcs: ";
-  for (var k in this.arcs) r +=  '['+this.arcs[k].source.id
-                               +'->'+this.arcs[k].target.id+']';
-  return r;
-  */
 }
 
 Net.prototype.fromPNML = function(pnml,scale,unit) {
@@ -782,6 +752,11 @@ Net.prototype.removeTransition = function (transition) {
   for (var arcOut in transition.arcsOut) this.removeArc(transition.arcsOut[arcOut]);
   this.svg.removeChild(transition.t);
   this.svg.removeChild(transition.l);
+}
+
+Net.prototype.removeAll = function () {
+  for (var p in this.places) this.removePlace(this.places[p]);
+  for (var t in this.transitions) this.removeTransition(this.transitions[t]);
 }
 
 // seems we can only listen for keys outside svg
