@@ -111,14 +111,14 @@ function Node(nodeType) {
 Node.prototype.addLabel = function (x,y) {
   this.l = document.createElementNS(svgNS,'text');
   this.l.setAttributeNS(null,'class','label');
-  this.l.setAttributeNS(null,'stroke','red');
+  this.l.setAttributeNS(null,'stroke','black');
   this.l.setAttributeNS(null,'stroke-width','1');
-  this.l.setAttributeNS(null,'font-size','100');
+  this.l.setAttributeNS(null,'font-size','10');
   this.l.setAttributeNS(null,'x',x);
   this.l.setAttributeNS(null,'y',y);
   this.l.appendChild(document.createTextNode(this.name));
   this.l.addEventListener('click',bind(this.rename,this),false);
-  this.net.svg.appendChild(this.l);
+  this.net.contents.appendChild(this.l);
 }
 Node.prototype.rename = function(event) {
   var name = prompt('new '+this.nodeType+' name? ',this.name);
@@ -173,7 +173,7 @@ Node.prototype.newArcHandler = function(event) {
 Node.prototype.mouseupHandler = function(event) {
   if ((this.net.cursor.mode==='a')
     &&(this.net.selection instanceof Arc)) {
-    this.net.svg.removeChild(this.net.selection.a); 
+    this.net.contents.removeChild(this.net.selection.a); 
     if (!(this.net.selection.source instanceof this.constructor)) 
       this.net.addArc(this.net.selection.source,this);
   }
@@ -231,7 +231,7 @@ Place.prototype.placeShape = function (x,y,r) {
   shape.setAttributeNS(null,'cy',y); 
   shape.setAttributeNS(null,'r',r);
   shape.setAttributeNS(null,'stroke','black');
-  shape.setAttributeNS(null,'stroke-width','10px');
+  shape.setAttributeNS(null,'stroke-width','1px');
   shape.setAttributeNS(null,'fill','white');
   return shape;
 }
@@ -306,7 +306,7 @@ Transition.prototype.transitionShape = function (x,y,w,h) {
   t.setAttributeNS(null,'width',w);
   t.setAttributeNS(null,'height',h);
   t.setAttributeNS(null,'stroke','black');
-  t.setAttributeNS(null,'stroke-width','10px');
+  t.setAttributeNS(null,'stroke-width','1px');
   t.setAttributeNS(null,'fill','darkgrey');
   return t;
 }
@@ -362,7 +362,7 @@ function Arc(source,target) {
 
   this.a = document.createElementNS(svgNS,'path');
   this.a.arc = this;
-  this.a.setAttributeNS(null,'style', 'stroke: black; stroke-width: 10px');
+  this.a.setAttributeNS(null,'style', 'stroke: black; stroke-width: 1px');
   this.a.setAttributeNS(null,'class','arc');
   this.a.setAttributeNS(null,'marker-end','url(#Arrow)');
   this.a.addEventListener('click',bind(this.clickHandler,this),false);
@@ -400,6 +400,7 @@ function Cursor(net) {
   //       palette group, keep off-screen references and simply
   //       assign the active shape to the palette?
   this.palette = document.createElementNS(svgNS,'g');
+  this.palette.id = 'cursorPalette';
   this.mode    = ''; // TODO: - an enum would be nicer
                      //       - can we replace the various switch/if on
                      //         mode with a nice oo pattern without
@@ -459,18 +460,14 @@ Cursor.prototype.updatePos = function(p) {
 
 // ----------------------------- Net {{{
 
-function Net(id,width,height) {
+function Net(id,width,height) { // viewspace dimensions
 
   this.id     = id;
-  this.width  = width;
-  this.height = height;
   this.svg    = document.createElementNS(svgNS,'svg');
   this.svg.id = id;
   this.svg.setAttributeNS(null,'version','1.1');
-  this.svg.setAttributeNS(null,'width','10cm');
+  this.svg.setAttributeNS(null,'width','90%');
   this.svg.setAttributeNS(null,'height','10cm');
-  this.svg.setAttributeNS(null,'viewBox','0 0 '+width+' '+height);
-  this.svg.setAttributeNS(null,'clip','0 0 '+width+' '+height); // TODO: is this right?
   this.svg.style.margin = '10px';
 
   // opera doesn't register mousemove events where there is no svg content,
@@ -478,10 +475,16 @@ function Net(id,width,height) {
   // TODO: does the standard say anything about this?
   this.addBackdrop();
 
+  this.setViewSize(0,0,width,height);
+
   this.addDefs();
 
   this.cursor      = new Cursor(this);
   this.svg.appendChild(this.cursor.palette);
+
+  this.contents = document.createElementNS(svgNS,'g');
+  this.contents.id = 'contents';
+  this.svg.appendChild(this.contents);
 
   // TODO: maintain separate groups for places, transitions, arcs, 
   //       and labels, eg, to ensure that all labels overlap all nodes
@@ -557,23 +560,32 @@ Net.prototype.toPNML = function() {
       var t=this.transitions[ti];
       ts.push(transition(t.id,t.pos.x,t.pos.y));
     };
-  var n = net('http://www.petriweb.org/specs/pnml','net'
+  var n = net("http://www.pnml.org/version-2009/grammar/ptnet",'net'
              ,[name('example')
               ,graphics([dimension(this.width,this.height)
                         ,position(0,0)])
               ].concat(ts,ps));
 
-  var pnml = document.implementation.createDocument(null,'pnml',null);
+  var pnml = document.implementation.createDocument("http://www.pnml.org/version-2009/grammar/pnml",'pnml',null);
   pnml.documentElement.appendChild(n);
-  messagePre(listXML('',pnml.documentElement).join("\n"));
-  
+  return listXML('',pnml.documentElement).join("\n");
 }
 
 Net.prototype.fromPNML = function(pnml,scale,unit) {
   if (pnml.querySelectorAll) {
-    var scale = scale ? scale : 10; 
-    var unit  = unit ? unit : 100; 
+    var scale = scale ? scale : 1; 
+    var unit  = unit ? unit : 10; 
+    message('**');
+    var d = pnml.querySelector('net>graphics>dimension');
+    var p = pnml.querySelector('net>graphics>position');
+    var px = p ? p.attributes['x'].nodeValue : '0';
+    var py = p ? p.attributes['y'].nodeValue : '0';
+    var dx = d ? d.attributes['x'].nodeValue : '1000';
+    var dy = d ? d.attributes['y'].nodeValue : '1000';
+    this.setViewSize(px,py,dx,dy);
+    message('**'+p+'|'+d+' : '+px+' '+py+' '+dx+' '+dy);
     var places = pnml.querySelectorAll('place');
+    if (!d) { dx = 0; dy = 0; } // we'll trace max node coordinates
     for (var i=0; i<places.length; i++) {
       var place = places[i];
       var id    = place.getAttributeNS(null,'id');
@@ -581,7 +593,9 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
       var pos   = place.querySelector('graphics>position');
       var x     = pos.attributes['x'].nodeValue;
       var y     = pos.attributes['y'].nodeValue;
-      message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
+      px = Math.min(px,x); dx = Math.max(dx,x);
+      py = Math.min(py,y); dy = Math.max(dy,y);
+      // message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
       this.addPlace(id,x*scale,y*scale,unit,name?name.textContent:null);
     }
     var transitions = pnml.querySelectorAll('transition');
@@ -592,7 +606,9 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
       var pos   = transition.querySelector('graphics>position');
       var x     = pos.attributes['x'].nodeValue;
       var y     = pos.attributes['y'].nodeValue;
-      message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
+      px = Math.min(px,x); dx = Math.max(dx,x);
+      py = Math.min(py,y); dy = Math.max(dy,y);
+      // message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
       this.addTransition(id,x*scale,y*scale,2*unit,2*unit,name?name.textContent:null);
     }
     var arcs = pnml.querySelectorAll('arc');
@@ -601,7 +617,7 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
       var id  = arc.getAttributeNS(null,'id');
       var sourceId = arc.getAttributeNS(null,'source');
       var targetId = arc.getAttributeNS(null,'target');
-      message(id+': '+sourceId+' -> '+targetId);
+      // message(id+': '+sourceId+' -> '+targetId);
       if (this.transitions[sourceId] && this.places[targetId])
         this.addArc(this.transitions[sourceId],this.places[targetId]);
       else if (this.places[sourceId] && this.transitions[targetId])
@@ -609,8 +625,34 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
       else
         message('cannot find source and target');
     }
+    if (!p || !d) { // no dimensions specified, try bounding box instead
+                    // the svg contents bounding box doesn't seem to work right
+                    // (apparently, that issue is opera-specific, works in firefox?)
+                    // so we use the min/max node coordinates as an approximation
+                    // [PNML files should specify intended dimensions to avoid this]
+      var bbox = this.contents.getBBox(); // TODO: why isn't this tight in opera?
+      message('** (min/max) '+px+' '+py+' '+dx+' '+dy);
+      messagePre(listProperties('contents.BBox',bbox));
+      if (navigator.appName.match(/Opera/)) // TODO: test for bug rather than browser
+        this.setViewSize(px,py,dx+10,dy+10);
+      else
+        this.setViewSize(bbox.x,bbox.y,bbox.width,bbox.height);
+    }
   } else
     message('querySelectorAll not supported');
+}
+
+// TODO: properly calculate clip and backdrop dimensions
+Net.prototype.setViewSize = function (x,y,w,h) {
+  this.width  = w;
+  this.height = h;
+  this.svg.setAttributeNS(null,'viewBox',x+' '+y+' '+w+' '+h);
+  this.svg.setAttributeNS(null,'clip',x+' '+y+' '+w+' '+h); // TODO: is this right?
+  var maxExtent = Math.max(this.width,this.height);
+  this.svgBackdrop.setAttributeNS(null,'width',maxExtent); 
+  this.svgBackdrop.setAttributeNS(null,'height',maxExtent);
+  this.svgBackdrop.setAttributeNS(null,'x',x);
+  this.svgBackdrop.setAttributeNS(null,'y',y);
 }
 
 Net.prototype.addBackdrop = function () {
@@ -664,7 +706,7 @@ Net.prototype.addDefs = function () {
   marker.setAttributeNS(null,'viewBox','0 0 10 10');
   marker.setAttributeNS(null,'refX','10');
   marker.setAttributeNS(null,'refY','5');
-  marker.setAttributeNS(null,'markerUnits','strokeWidth');
+  marker.setAttributeNS(null,'markerUnits','userSpaceOnUse');
   marker.setAttributeNS(null,'markerWidth','10');
   marker.setAttributeNS(null,'markerHeight','10');
   marker.setAttributeNS(null,'orient','auto');
@@ -708,7 +750,7 @@ Net.prototype.addArc = function (source,target) {
     this.arcs.push(arc);
     source.registerArcAtSource(arc);
     target.registerArcAtTarget(arc);
-    this.svg.appendChild(arc.a);
+    this.contents.appendChild(arc.a);
     return arc;
   }
 }
@@ -717,14 +759,14 @@ Net.prototype.removeArc = function (arc) {
   // TODO: this should move to Arc()
   arc.source.unregisterArcAtSource(arc);
   arc.target.unregisterArcAtTarget(arc);
-  this.svg.removeChild(arc.a);
+  this.contents.removeChild(arc.a);
 }
 
 Net.prototype.addPlace = function (id,x,y,r,name) {
   var place = new Place(this,id,new Pos(x,y)
                        ,r?r:this.r,name?name:id);
   this.places[id] = place;
-  this.svg.appendChild(place.p);
+  this.contents.appendChild(place.p);
   return place;
 }
 Net.prototype.removePlace = function (place) {
@@ -732,8 +774,8 @@ Net.prototype.removePlace = function (place) {
   // TODO: this should move to NODE()
   for (var arcIn in place.arcsIn) this.removeArc(place.arcsIn[arcIn]);
   for (var arcOut in place.arcsOut) this.removeArc(place.arcsOut[arcOut]);
-  this.svg.removeChild(place.p);
-  this.svg.removeChild(place.l);
+  this.contents.removeChild(place.p);
+  this.contents.removeChild(place.l);
 }
 
 Net.prototype.addTransition = function (id,x,y,w,h,name) {
@@ -742,7 +784,7 @@ Net.prototype.addTransition = function (id,x,y,w,h,name) {
                                  ,h?h:this.transitionHeight
                                  ,name?name:id);
   this.transitions[id] = transition;
-  this.svg.appendChild(transition.t);
+  this.contents.appendChild(transition.t);
   return transition;
 }
 Net.prototype.removeTransition = function (transition) {
@@ -750,8 +792,8 @@ Net.prototype.removeTransition = function (transition) {
   // TODO: this should move to NODE()
   for (var arcIn in transition.arcsIn) this.removeArc(transition.arcsIn[arcIn]);
   for (var arcOut in transition.arcsOut) this.removeArc(transition.arcsOut[arcOut]);
-  this.svg.removeChild(transition.t);
-  this.svg.removeChild(transition.l);
+  this.contents.removeChild(transition.t);
+  this.contents.removeChild(transition.l);
 }
 
 Net.prototype.removeAll = function () {
