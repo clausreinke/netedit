@@ -1,10 +1,22 @@
 
-// use document element 'messages' as an output console
+/**
+ * use document element div (default 'messages') as a simple output console for
+ * message msg
+ * 
+ * @param msg
+ * @param div
+ */
 function message(msg,div) {
   var msgs = document.getElementById(div==null?'messages':div);
   msgs.appendChild(document.createTextNode(msg));
   msgs.appendChild(document.createElement("br"));
 }
+/**
+ * use document element div (default 'messages') as a console for formatted output msg
+ * 
+ * @param msg
+ * @param div
+ */
 function messagePre(msg,div) {
   var msgs = document.getElementById(div==null?'messages':div);
   var pre  = document.createElement('pre');
@@ -12,7 +24,14 @@ function messagePre(msg,div) {
   msgs.appendChild(pre);
 }
 
-// wrap object methods, for debugging purposes, with optional before code;
+/**
+ * wrap object x method f with before/after/around advice, for
+ * debugging/tracing, general aspect-oriented programming, ..
+ * 
+ * @param x
+ * @param f
+ * @param advice
+ */
 function wrap(x,f,advice) {
   var wrapper = function(oldf) {
     return function() { 
@@ -39,6 +58,14 @@ function wrap(x,f,advice) {
 }
 
 // TODO: marginally useful so far, needs elaboration
+/**
+ * list object/node x properties, optionally filtering by type; pre should be
+ * name of x;
+ * 
+ * @param pre
+ * @param x
+ * @param without
+ */
 function listProperties(pre,x,without) {
   message('// ----start---- listing properties for '+pre);
   for (var key in x) {
@@ -56,7 +83,12 @@ function listProperties(pre,x,without) {
 }
 
 // TODO: - use querySelector
-//       - support resize/hide
+//       - support interactive resize/hide
+/**
+ * simplistic object/dom listing to consoleID (creates its own 'show'/'clear' buttons)
+ * 
+ * @param consoleID
+ */
 function ObjectViewer(consoleID) {
   var console = document.getElementById(consoleID);
 
@@ -87,6 +119,12 @@ function ObjectViewer(consoleID) {
     },false);
 }
 
+/**
+ * interactively evaluate javascript code (creates its own input field
+ * and 'eval' button, logs results/errors to consoleID)
+ * 
+ * @param consoleID
+ */
 function JSEval(consoleID) {
   var console = document.getElementById(consoleID);
 
@@ -109,6 +147,14 @@ function JSEval(consoleID) {
     },false);
 }
 
+// TODO: should we use a less explicit method for this?
+/**
+ * formatted XML listing of DOM tree xml; returns list of lines;
+ * typical use: messagePre(listXML('',xml).join("\n"))
+ * 
+ * @param prefix
+ * @param xml
+ */
 function listXML(prefix,xml) {
   var text = [];
   if (xml.nodeType===3) // just a text node
@@ -116,6 +162,8 @@ function listXML(prefix,xml) {
   else {
     var tag      = '<'+xml.nodeName;
     var attrs    = xml.attributes;
+    if (xml.namespaceURI)
+      tag += ' xmlns="'+xml.namespaceURI+'"';
     if (attrs)
       for (var i=0; i<attrs.length; i++)
         tag += ' '+attrs.item(i).nodeName+'='+attrs.item(i).nodeValue;
