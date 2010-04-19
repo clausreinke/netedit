@@ -47,13 +47,13 @@ function initNet() {
     });
   */
 
-  var net  = new Net('net',5000,3000);
+  var net  = new Net('net',500,300);
 
-  var in1  = net.addPlace('in1' , 1000, 1000);
-  var in2  = net.addPlace('in2' , 1000, 2000);
-  var t1   = net.addTransition('t1',2000,1500);
-  var out1 = net.addPlace('out1', 3000, 1000);
-  var out2 = net.addPlace('out2', 3000, 2000);
+  var in1  = net.addPlace('in1' , 100, 100);
+  var in2  = net.addPlace('in2' , 100, 200);
+  var t1   = net.addTransition('t1',200,150);
+  var out1 = net.addPlace('out1', 300, 100);
+  var out2 = net.addPlace('out2', 300, 200);
 
   var a1 = net.addArc(in1,t1);
   var a2 = net.addArc(in2,t1);
@@ -64,66 +64,9 @@ function initNet() {
   // net.removePlace(out1);
   // net.removeTransition(t1);
 
-  net.toPNML();
-
   document.body.insertBefore(net.svg,document.body.firstChild);
 
-  // loading PNML files (partially implemented)
-  var fileInput = document.createElement('input');
-  fileInput.type  = 'file';
-  fileInput.name  = 'loadPNML'; // TODO: visualize input field purpose
-  fileInput.id    = 'fileInput';
-  fileInput.style.width = 'auto';
-  fileInput.addEventListener('change',function(){
-      var filename = 'pnml/'+this.value.replace(/^C:[\/\\]fake_path[\/\\]/,'');
-      var xhr = new XMLHttpRequest(); // browser-specific
-      xhr.open('GET',filename,false);
-      xhr.send(null);
-      var pnml = xhr.responseXML;
-      net.removeAll();
-      net.fromPNML(pnml);
-    },false);
-  document.body.insertBefore(fileInput,net.svg);
-
-  // exporting SVG files
-  // TODO: are size limits for data:-url still an issue? use document.write instead?
-  var exportSVG =document.createElement('input');
-  exportSVG.type = 'button';
-  exportSVG.id   = 'exportSVG';
-  exportSVG.value = 'export SVG';
-  exportSVG.style.width = 'auto';
-  exportSVG.addEventListener('click',function(){
-      // clone svg, then remove interactive elements (not needed for static output)
-      // TODO: cloning in opera 10.10 seems to convert some attribute representations
-      //       (eg, 'cx' from '100.1' to '100,1')
-      var svgOut = net.svg.cloneNode(true);
-      svgOut.removeChild(svgOut.querySelector('#cursorPalette'));
-      svgOut.removeChild(svgOut.querySelector('#netHelp'));
-      // why isn't the namespace attribute present by default?
-      svgOut.xmlns = svgNS;
-      // TODO: should we use DOM3 Load and Save / XMLSerializer / toXMLString instead?
-      //        or the DOM tree walkers?
-      var xml = listXML('',svgOut).join("\n");
-      messagePre(xml);
-      delete svgOut;
-      location = 'data:image/svg+xml,'+encodeURIComponent(xml);
-      // TODO: firefox tends to crash here?
-    },false);
-  document.body.insertBefore(exportSVG,fileInput.nextSibling);
-
-  // exporting PNML files (partially implemented)
-  // TODO: are size limits for data:-url still an issue? use document.write instead?
-  var exportPNML =document.createElement('input');
-  exportPNML.type = 'button';
-  exportPNML.id   = 'exportPNML';
-  exportPNML.value = 'export PNML';
-  exportPNML.style.width = 'auto';
-  exportPNML.addEventListener('click',function(){
-      var pnml = net.toPNML();
-      messagePre(pnml);
-      location = 'data:application/xml,'+encodeURIComponent(pnml);
-    },false);
-  document.body.insertBefore(exportPNML,fileInput.nextSibling);
+  net.addImportExportControls();
 
   var ls = net.toString().split("\n");
   for (var l in ls) message(ls[l]);
