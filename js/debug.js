@@ -74,24 +74,25 @@ function wrap(x,f,advice) {
 
 // TODO: marginally useful so far, needs elaboration
 /**
- * list object/node x properties, optionally filtering by type; pre should be
- * name of x;
+ * list object/node x properties, optional filter; pre should be name of x;
  * 
  * @param pre
  * @param x
- * @param without
+ * @param filter
+ * @param nofunctions
  */
-function listProperties(pre,x,without) {
-  message('// ----start---- listing properties for '+pre);
+function listProperties(pre,x,filter,nofunctions) {
+  message('// ----start---- listing attributes for '+pre);
+  if (x.attributes)
+    for (var i=0; i<x.attributes.length; i++)
+      message(x.attributes.item(i).nodeName+'="'+x.attributes.item(i).nodeValue+'"');
+  message('// ------------- listing properties for '+pre);
   for (var key in x) {
     p = x[key];
     if (p!==null && p!=='' 
-        && (without!==null || (without.indexOf(typeof p)===-1))) {
+        && (filter==null || key.match(filter))
+        && (!nofunctions || (typeof p!=="function"))) {
       message(pre+'.'+key+"("+typeof p+") : "+p);
-      if (p.name)
-        message("// "+pre+'.'+key+".name : "+p.name);
-      if (p.value)
-        message("// "+pre+'.'+key+".value : "+p.value);
     }
   }
   message('// ----end------ listing properties for '+pre);
