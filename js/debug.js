@@ -116,7 +116,7 @@ function ObjectViewer(consoleID) {
   var commandline = document.createElement('input');
   commandline.type = 'text'; commandline.maxlength = '100';
   commandline.style.width = '80%';
-  document.body.insertBefore(form,document.body.firstChild);
+  document.body.insertBefore(form,console);
 
   form.appendChild(commandline);
   form.appendChild(show);
@@ -150,7 +150,7 @@ function JSEval(consoleID) {
   var commandline = document.createElement('input');
   commandline.type = 'text'; commandline.maxlength = '100';
   commandline.style.width = '80%';
-  document.body.insertBefore(form,document.body.firstChild);
+  document.body.insertBefore(form,console);
 
   form.appendChild(commandline);
   form.appendChild(button);
