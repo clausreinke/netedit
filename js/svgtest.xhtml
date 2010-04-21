@@ -24,7 +24,7 @@ div#messages { clear: both; margin: 10px; border: solid 1px blue;
 <script type="text/javascript"><![CDATA[
 function initNet() {
 
-  var net  = new Net('net',500,300);
+  /* var */ net  = new Net('net',500,300);
 
   var in1  = net.addPlace('in1' , 100, 100);
   var in2  = net.addPlace('in2' , 100, 200);
@@ -41,7 +41,7 @@ function initNet() {
   // net.removePlace(out1);
   // net.removeTransition(t1);
 
-  document.body.insertBefore(net.svg,document.body.firstChild);
+  document.body.insertBefore(net.svgDiv,document.body.firstChild);
 
   net.addImportExportControls();
 
@@ -55,7 +55,6 @@ function initNet() {
 </head>
 
 <body onload="initNet(); JSEval('messages');ObjectViewer('messages');">
-
 <div id='messages'/>
 
 <hr/>

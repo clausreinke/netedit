@@ -164,15 +164,16 @@ Net.prototype.addImportExportControls = function () {
   var net = this; // for use in event handler closures
 
   var importExportGroup = document.createElement('label');
-  importExportGroup.setAttribute('style','background: lightgrey; margin-left: 10px');
+  // importExportGroup.setAttribute('style','background: darkgrey');
   importExportGroup.appendChild(document.createTextNode('import PNML: '));
-  document.body.insertBefore(importExportGroup,this.svg);
+  this.svgDiv.insertBefore(importExportGroup,this.svg);
 
   // importing PNML files (partially implemented)
   var importPNML = document.createElement('input');
   importPNML.type  = 'file';
   importPNML.title = 'import PNML';
   importPNML.id    = 'importPNML';
+  importPNML.style.width = 'auto';
   // TODO: which event to listen to? change is much too frequent, input doesn't
   //       work in firefox
   importPNML.addEventListener('submit',function(){

@@ -244,12 +244,15 @@ Cursor.prototype.updatePos = function(p) {
 function Net(id,width,height) {
 
   this.id     = id;
+  this.svgDiv = document.createElement('div');
+  this.svgDiv.id = 'svgDiv';
+  this.svgDiv.setAttribute('style','margin: 10px; background: lightgrey');
   this.svg    = document.createElementNS(svgNS,'svg');
   this.svg.id = id;
   this.svg.setAttributeNS(null,'version','1.1');
-  this.svg.setAttributeNS(null,'width','90%');
+  this.svg.setAttributeNS(null,'width','100%');
   this.svg.setAttributeNS(null,'height','10cm');
-  this.svg.style.marginLeft = '10px';
+  this.svgDiv.appendChild(this.svg);
 
   // opera doesn't register mousemove events where there is no svg content,
   // so we provide a dummy backdrop (this doesn't seem needed in firefox?)
@@ -313,7 +316,17 @@ Net.prototype.transitionHeight      = 2*Net.prototype.r;
 
 // TODO: properly calculate clip and backdrop dimensions
 //       read svg viewport spec again, viewBox, viewport and aspect..
-//       how to calculate the visible x/y-coordinates automatically?
+//       how to calculate the visible x/y-coordinates automatically and portably?
+//
+//       we need to do this in two stages? initially, when the svg gets
+//       added to the document, there is some browser/element-negotiation
+//       about initial viewport; so we need to post the viewport coordinates
+//       we want, then check what viewport coordinates we got (and probably
+//       do the same for any later resizing - look for resize-related events);
+//
+//       for now, we embed the svg in a div and use the div's client..
+//       properties, side-stepping the issues
+//
 /**
  * set viewBox, clipBox, and backdrop dimensions
  * 
@@ -326,12 +339,8 @@ Net.prototype.setViewSize = function (x,y,w,h) {
   this.width  = w;
   this.height = h;
   this.svg.setAttributeNS(null,'viewBox',x+' '+y+' '+w+' '+h);
-  this.svg.setAttributeNS(null,'clip',x+' '+y+' '+w+' '+h); // TODO: is this right?
-  var maxExtent = Math.max(this.width,this.height);
-  this.svgBackdrop.setAttributeNS(null,'width',maxExtent); 
-  this.svgBackdrop.setAttributeNS(null,'height',maxExtent);
-  this.svgBackdrop.setAttributeNS(null,'x',x);
-  this.svgBackdrop.setAttributeNS(null,'y',y);
+  this.svg.setAttributeNS(null,'clip',y+' '+w+' '+h+' '+x); // TODO: is this right?
+  this.updateBackdrop();
 }
 
 /**
@@ -339,14 +348,18 @@ Net.prototype.setViewSize = function (x,y,w,h) {
  */
 Net.prototype.addBackdrop = function () {
   this.svgBackdrop = document.createElementNS(svgNS,'rect');
-    this.svgBackdrop.id = 'svgBackdrop';
-    var maxExtent = Math.max(this.width,this.height);
-    this.svgBackdrop.setAttributeNS(null,'width',maxExtent); 
-    this.svgBackdrop.setAttributeNS(null,'height',maxExtent);
-    this.svgBackdrop.setAttributeNS(null,'x',0);
-    this.svgBackdrop.setAttributeNS(null,'y',-1000);
-    this.svgBackdrop.setAttributeNS(null,'style','fill: lightgrey');
-    this.svg.appendChild(this.svgBackdrop);
+  this.svgBackdrop.id = 'svgBackdrop';
+  this.svgBackdrop.setAttributeNS(null,'style','fill: lightgrey');
+  this.updateBackdrop();
+  this.svg.appendChild(this.svgBackdrop);
+}
+
+Net.prototype.updateBackdrop = function () {
+  var boundingRect = this.svgDiv;
+  this.svgBackdrop.setAttributeNS(null,'x',boundingRect.clientLeft);
+  this.svgBackdrop.setAttributeNS(null,'y',boundingRect.clientTop);
+  this.svgBackdrop.setAttributeNS(null,'width',boundingRect.clientWidth); 
+  this.svgBackdrop.setAttributeNS(null,'height',boundingRect.clientHeight);
 }
 
 /**
@@ -556,7 +569,7 @@ Net.prototype.removeAll = function () {
 }
 
 // seems we can only listen for keys outside svg
-// we only set a mode for use in later click events 
+// we only set a mode for use in later, more specific events 
 // TODO: move to Cursor?
 /**
  * event handler: listen to keypresses, setting Cursor mode
@@ -577,20 +590,30 @@ Net.prototype.keypressHandler = function (event) {
     case '?': this.toggleHelp(); break;
     default: this.cursor.defaultCursor(); 
              // '\esc' should cancel anything in progress, leaving neutral state
-             // TODO: doesn't always work for node move
+             // FIXME: doesn't always work for node move
              //       (move node, leave canvas, mouseup, return to canvas,
-             //        mousedown => \esc doesn't cancel move anymore)
+             //        mousedown => \esc doesn't cancel move anymore; we then
+             //        have had two sets of move handlers, and remove only the
+             //        newer set, the older set know their object, so don't need
+             //        to refer to this.selection);
+             //        mousedown and mousemove/mouseup should be mutually
+             //        exclusive; first factor removeEventListener loops into
+             //        a node method cancelMove() or such to keep administration
+             //        in one place, and to make sure mousedown is reestablished
              if (this.selection) {
                if (this.selection instanceof Arc) {
                  message('cancelling Arc construction in progress');
+
                  this.contents.removeChild(this.selection.a);
                  for (var l in this.selection.source.listeners)
                    this.svg.removeEventListener(l,this.selection.source.listeners[l],false);
                   this.selection.source.listeners = {};
                  this.selection =  null;            
+
                } else if ((this.selection instanceof Place)
                         ||(this.selection instanceof Transition)) {
                  message('cancelling Node move in progress');
+
                  for (var l in this.selection.listeners) 
                    this.svg.removeEventListener(l,this.selection.listeners[l],false);
                  this.selection.listeners = {};
@@ -598,7 +621,8 @@ Net.prototype.keypressHandler = function (event) {
                }
              }
   }
-  // event.preventDefault(); // how to do this only inside svg?
+  // event.preventDefault(); // how to do this only inside svg?  would it help
+                             // to wrap the svg in a div and use that?
   // message('Net.keypressHandler event.target: '+event.target.nodeName);
   return true;
 }
