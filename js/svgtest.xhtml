@@ -9,43 +9,20 @@
 <head>
 
 <style type="text/css">
-*.place      { }
-*.transition { }
-*.arc        { }
-
 #svg         { float: left }
-div#viewer   { float: right; margin: 10px; border: solid 1px blue; 
-               height: 24em; width: 12em; overflow: scroll }
 div#messages { clear: both; margin: 10px; border: solid 1px blue; 
                height: 10em; overflow: scroll }
 </style>
 
 <script type="text/javascript" src="debug.js"/>
+<script type="text/javascript" src="utils.js"/>
 <script type="text/javascript" src="vector.js"/>
+<script type="text/javascript" src="net-elements.js"/>
 <script type="text/javascript" src="net.js"/>
+<script type="text/javascript" src="net-import-export.js"/>
+
 <script type="text/javascript"><![CDATA[
 function initNet() {
-  // wrap(Place.prototype,'mousedownHandler');
-  // wrap(Place.prototype,'mouseupHandler');
-  // wrap(window,'patchStyle',{'before':function(x) { message('before '+x.id); }});
-
-  /*
-  var events = [];
-  wrap(Element.prototype,'addEventListener', // TODO: doesn't work in firefox!
-    {'before':function(e,l,c) { 
-                message('aEL '+this+(this.id?this.id:'')+' '+e);
-                }
-    ,'around':function(aEL,e,l,c) { 
-                events[e]++;
-                return aEL.apply(this,[e,l,c]);
-                }
-    });
-  wrap(Element.prototype,'removeEventListener',
-    {'after':function(e,l,c) { 
-                message('rEL '+this+(this.id?this.id:'')+' '+e);
-                }
-    });
-  */
 
   var net  = new Net('net',500,300);
 
@@ -71,24 +48,13 @@ function initNet() {
   var ls = net.toString().split("\n");
   for (var l in ls) message(ls[l]);
 
-  /*
-  message('listeners have been registered for these events:');
-  for (var ex in events) {
-    message(ex);
-    (function (ex) { // separate ex value from loop index
-      document.documentElement.addEventListener(ex,function(event) {
-        message(ex+event);
-      },true); }(ex));
-  }
-  */
-
 }
 
 ]]></script>
 
 </head>
 
-<body onload="initNet();JSEval('messages');ObjectViewer('messages');">
+<body onload="initNet(); JSEval('messages');ObjectViewer('messages');">
 
 <div id='messages'/>
 

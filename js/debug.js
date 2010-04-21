@@ -1,4 +1,19 @@
 
+//
+// Debug-related utilities
+//
+// logging messages to div elements, listing object/node attributes and
+// properties, JS read-eval-print loop, listing XML trees, wrapping functions;
+//
+// listing XML trees and wrapping functions (allowing a form of aspect-oriented
+// programming) would be of more general use, so might move away from here,
+// perhaps to utils.js, or to its own file;
+//
+// most stuff here is experimental, much is built-in/predefined in good JS
+// debuggers or frameworks, but I find it useful to define these myself, both to
+// improve my understanding and to gain more flexibility/scriptability
+//
+
 /**
  * use document element div (default 'messages') as a simple output console for
  * message msg
