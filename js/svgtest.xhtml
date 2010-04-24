@@ -44,6 +44,7 @@ function initNet() {
   document.body.insertBefore(net.svgDiv,document.body.firstChild);
 
   net.addImportExportControls();
+  net.toggleHelp();
 
   var ls = net.toString().split("\n");
   for (var l in ls) message(ls[l]);
@@ -54,7 +55,7 @@ function initNet() {
 
 </head>
 
-<body onload="initNet(); JSEval('messages');ObjectViewer('messages');">
+<body onload="initNet(); // JSEval('messages');ObjectViewer('messages');">
 <div id='messages'/>
 
 <hr/>
