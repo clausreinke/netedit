@@ -23,8 +23,8 @@
 // implementation); hence, it is SVG only at the moment, and written to modern
 // standards, rather than to browser quirks - currently, it works with opera and
 // firefox (with few quirks), possibly with others, but definitely not with
-// current versions of IE (IE9 might well work, if the preview reports are any
-// indication, but I haven't tested that yet);
+// current versions of IE (IE9 will have better standards support again, if the
+// preview reports are any indication, but I haven't tested with IE yet);
 //
 // Obviously, the frontend could have separate applications for putting Petri
 // nets on the web, in blogs, tutorials, and the like, or as a simple GUI for
@@ -41,6 +41,10 @@
 // equally recent browser versions (or framework middleware to make up for the
 // difference). For now, we stick with Opera 10.10 and Firefox 3.62 as lower
 // bounds.
+//
+// Talking about standards, we only support/use a subset of PNML so far (net,
+// transition, place, transition/place names with default offsets, arcs without
+// intermediate support points, net dimensions, node positions).
 
 // Implementation notes:
 //
