@@ -1,34 +1,50 @@
-var svgNS = 'http://www.w3.org/2000/svg';
 
-// ----------------- simple Petri net editor
+// ----------------- a simple Petri net editor
 
-// Version 0.1 (<date>)
+// Version          : 0.1-alpha (<insert release date>)
+// Project home page: <tbd>
+// Author           : Claus Reinke <claus.reinke@talk21.com>
+//
+// PLEASE NOTE: this code has not yet been released - please do not distribute!
+
+// Summary:
 //
 // Can currently edit simple, single-page Place/Transition-Nets without
 // markings, export them to PNML or SVG, and import them from PNML. Lots of
 // basic features still missing in this initial release (also, consider it 
 // alpha quality!-)
 
+// General notes:
+//
 // So far, this is more a browser-as-a-portable-GUI-library kind of application
 // than a put-it-on-the-web thing (initial intended use case was to hook it into
 // a Haskell code generator and simulator for Haskell-Coloured Petri Nets,
 // eliminating the wxWidgets GUI lib dependency of an earlier HCPN
-// implementations); hence, it is SVG only at the moment, and written to modern
+// implementation); hence, it is SVG only at the moment, and written to modern
 // standards, rather than to browser quirks - currently, it works with opera and
 // firefox (with few quirks), possibly with others, but definitely not with
-// current versions of IE (IE9 might well work, if the previews are any
+// current versions of IE (IE9 might well work, if the preview reports are any
 // indication, but I haven't tested that yet);
 //
-// obviously, the frontend could have separate applications for putting Petri
+// Obviously, the frontend could have separate applications for putting Petri
 // nets on the web, in blogs, tutorials, and the like, or as a simple GUI for
 // other backends (different net types and their simulators);
 //
-// at minimum, we would need to add VML backend for pre-IE9 to support
-// on-the-web for a larger audience; defining an API for hooking up code
-// generators or simulators would help with frontend reuse, and with putting
-// dynamic Net simulations on the web;
+// At minimum, we would need to add VML backend for pre-IE9 to support
+// on-the-web for a larger audience (alternatives are any of the surviving
+// cross-browser SVG plugins, such as svgweb, or js-graphics libraries with
+// their own SVG/VML backends, such as raphael); defining an API for hooking up
+// code generators or simulators would help with frontend reuse, and with
+// putting dynamic Net simulations on the web;
+//
+// Note, however, that the use of standard, but fairly recent APIs requires
+// equally recent browser versions (or framework middleware to make up for the
+// difference). For now, we stick with Opera 10.10 and Firefox 3.62 as lower
+// bounds.
 
-// we have a simple model object hierarchy, with each model object linked to a
+// Implementation notes:
+//
+// We have a simple model object hierarchy, with each model object linked to a
 // single set of view objects (the view is a simple shadow of the model, so if
 // we want to enable multiple views per model object, we could insert an
 // interface for registering views with model objects, so that all views
@@ -83,12 +99,15 @@ var svgNS = 'http://www.w3.org/2000/svg';
 //         complex trace structures, with alternatives and annotations - similar
 //         to annotated board game records, but using net-like format)
 //
-//       - support node resize (if we want asymmetric transitions, also rotation?)
 //       - generalize view handling (generic view objects instead of
 //          Place/Transition/Arc-specific .p/.t/.a and .l)
+//       - support node resize (if we want asymmetric transitions, also rotation?)
 //       - allow default styling to be overridden via css (two issues:
 //          1. don't specify local style if applicable style exists
 //          2. we currently avoid css-style in favour of svg attributes)
+//         can all configuration be handled via css or do we need additional
+//         attributes?
+//       - allow editing of element attributes (like label positioning, ..);
 //       - may need to prevent default event handling (overlap with
 //          browser keyboard shortcuts or drag&drop), but we only want to do
 //          that within the SVG canvas, while we seem forced to catch keyboard
@@ -102,11 +121,29 @@ var svgNS = 'http://www.w3.org/2000/svg';
 //         firefox; users will probably ask for other browsers nevertheless -
 //         how difficult would it be to support IE8 (VML instead of SVG, lots of
 //         other differences/missing features) and possibly Safari/Chrome (only
-//         if no special case code needed for these)
+//         if no special case code needed for these)?
 //       - start automating tests prior to release, so that we have a chance
 //         of seeing what might be missing when things fail silently with other
 //         browsers/versions/oss 
+//       - factor sub-module loading from .xhtml to .js
+//       - long-term, we want to move away from graph editing; until then, there
+//         are lots of small improvements that would help to reduce the amount
+//         of manual graphical fiddling needed:
+//           - multiple element selections
+//           - move/copy/align/delete groups of elements
+//           - alignment help during element move
+//           - add new alternating nodes when arc targets are on empty ground
+//           ..
+//         also, graph traversals and group operations could help with
+//         repetitive tasks, such as 
+//           - renaming all elements in a copy
+//           - adjusting attributes in a group of elements
+//           - search&replace
+//           ..
+//
 // }}}
+
+var svgNS = 'http://www.w3.org/2000/svg';
 
 // ----------------------------- Cursor {{{
 
@@ -582,6 +619,23 @@ Net.prototype.keypressHandler = function (event) {
   var key = event.charCode || event.keyCode;
   this.cursor.mode = String.fromCharCode(key);
   // message('Net.keypressHandler '+this.cursor.mode+' '+event.charCode+'/'+event.keyCode);
+
+  // '\esc' should cancel anything in progress, leaving neutral state,
+  // other keys should first enter neutral state, then set new cursor mode
+  if (this.selection) {
+    if (this.selection instanceof Arc) {
+      message('cancelling Arc construction in progress');
+      this.contents.removeChild(this.selection.a);
+      this.selection.source.cancelListeners();
+
+    } else if ((this.selection instanceof Place)
+             ||(this.selection instanceof Transition)) {
+      message('cancelling Node move in progress');
+      this.selection.cancelListeners();
+    }
+    this.selection = null;
+  }
+
   switch (this.cursor.mode) {
     case 't': this.cursor.transitionCursor(); break;
     case 'p': this.cursor.placeCursor(); break;
@@ -589,37 +643,6 @@ Net.prototype.keypressHandler = function (event) {
     case 'd': this.cursor.deleteCursor(); break;
     case '?': this.toggleHelp(); break;
     default: this.cursor.defaultCursor(); 
-             // '\esc' should cancel anything in progress, leaving neutral state
-             // FIXME: doesn't always work for node move
-             //       (move node, leave canvas, mouseup, return to canvas,
-             //        mousedown => \esc doesn't cancel move anymore; we then
-             //        have had two sets of move handlers, and remove only the
-             //        newer set, the older set know their object, so don't need
-             //        to refer to this.selection);
-             //        mousedown and mousemove/mouseup should be mutually
-             //        exclusive; first factor removeEventListener loops into
-             //        a node method cancelMove() or such to keep administration
-             //        in one place, and to make sure mousedown is reestablished
-             if (this.selection) {
-               if (this.selection instanceof Arc) {
-                 message('cancelling Arc construction in progress');
-
-                 this.contents.removeChild(this.selection.a);
-                 for (var l in this.selection.source.listeners)
-                   this.svg.removeEventListener(l,this.selection.source.listeners[l],false);
-                  this.selection.source.listeners = {};
-                 this.selection =  null;            
-
-               } else if ((this.selection instanceof Place)
-                        ||(this.selection instanceof Transition)) {
-                 message('cancelling Node move in progress');
-
-                 for (var l in this.selection.listeners) 
-                   this.svg.removeEventListener(l,this.selection.listeners[l],false);
-                 this.selection.listeners = {};
-                 this.selection = null;
-               }
-             }
   }
   // event.preventDefault(); // how to do this only inside svg?  would it help
                              // to wrap the svg in a div and use that?

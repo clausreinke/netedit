@@ -33,8 +33,8 @@ Node.prototype.addLabel = function (x,y) {
   this.l = document.createElementNS(svgNS,'text');
   this.l.setAttributeNS(null,'class','label');
   this.l.setAttributeNS(null,'stroke','black');
-  this.l.setAttributeNS(null,'stroke-width','1px');
-  this.l.setAttributeNS(null,'font-size','10');
+  this.l.setAttributeNS(null,'stroke-width','0.1px');
+  this.l.setAttributeNS(null,'font-size','10px');
   this.l.setAttributeNS(null,'x',x);
   this.l.setAttributeNS(null,'y',y);
   this.l.appendChild(document.createTextNode(this.name));
@@ -62,8 +62,7 @@ Node.prototype.rename = function(event) {
  * @param event
  */
 Node.prototype.mousedownHandler = function(event) {
-  // redirect whole-svg events 
-  // if mouse is faster than rendering, events might otherwise miss small shapes
+  if (this.net.selection) return true; // don't add second set of event handlers
   if (this.net.cursor.mode==='m') {
     this.net.selection = this;
     var action = this.mousemoveHandler;
@@ -82,6 +81,8 @@ Node.prototype.mousedownHandler = function(event) {
   this.listeners = { 'mousemove' : bind(action,this)
                    , 'mouseup'   : bind(this.mouseupHandler,this)
                    }
+  // redirect whole-svg events 
+  // if mouse is faster than rendering, events might otherwise miss small shapes
   for (var l in this.listeners) 
     this.net.svg.addEventListener(l,this.listeners[l],false);
   return true;
@@ -127,10 +128,17 @@ Node.prototype.mouseupHandler = function(event) {
       this.net.addArc(this.net.selection.source,this);
   }
   this.net.selection = null;
+  this.cancelListeners();
+  return true;
+}
+
+/**
+ * cancel mode-specific event listeners created from this node
+ */
+Node.prototype.cancelListeners = function() {
   for (var l in this.listeners) 
     this.net.svg.removeEventListener(l,this.listeners[l],false);
   this.listeners = {};
-  return true;
 }
 
 /**
@@ -362,8 +370,8 @@ Transition.prototype.updateView = function() {
   this.t.setAttributeNS(null,'y',y2); 
   this.t.setAttributeNS(null,'width',this.width);
   this.t.setAttributeNS(null,'height',this.height);
-  this.l.setAttributeNS(null,'x',x2+2*this.width);
-  this.l.setAttributeNS(null,'y',y2+this.height);
+  this.l.setAttributeNS(null,'x',this.pos.x+0.6*this.width);
+  this.l.setAttributeNS(null,'y',this.pos.y+0.5*this.height);
 }
 
 // TODO: spread out connectors on the sides (need to find a scale
@@ -442,6 +450,7 @@ Arc.prototype.toString = function() {
   return this.source+'->'+this.target;
 }
 
+// TODO: we might need to add a transparent halo, to make arcs easier to select
 /**
  * an Arc is visually represented by graphical view (an SVG path); it reacts to
  * click events

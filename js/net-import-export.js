@@ -7,32 +7,40 @@
  */
 Net.prototype.toPNML = function() {
   // every XML file comes down to XML elements
-  var element = function(tag,attributes,children) {
-                   var e = document.createElementNS(null,tag);
-                   for (var a in attributes) e.setAttribute(a,attributes[a]);
-                   for (var c in children) e.appendChild(children[c]);
-                   return e;
-                }
+  var elementNS = function(tag,attributes,children) {
+                    var e = document.createElementNS(null,tag);
+                    for (var a in attributes) e.setAttributeNS(null,a,attributes[a]);
+                    for (var c in children) e.appendChild(children[c]);
+                    return e;
+                  }
   // auxiliary definitions for PNML format elements
-  var dimension = function(x,y) { return element('dimension',{'x':x,'y':y}); }
-  var position  = function(x,y) { return element('position',{'x':x,'y':y}); }
-  var graphics  = function(children) { return element('graphics',{},children); }
-  var name = function(text) {
-              return element('name',{}
-                            ,[element('text',{},[document.createTextNode(text)])]);
-             }
+  var dimension  = function(x,y) { return elementNS('dimension',{'x':x,'y':y}); }
+  var position   = function(x,y) { return elementNS('position',{'x':x,'y':y}); }
+  var graphics   = function(children) { return elementNS('graphics',{},children); }
+  var name       = function(text) {
+                     return elementNS('name',{}
+                                     ,[elementNS('text',{}
+                                                ,[document.createTextNode(text)])]);
+                   }
   var place      = function(id,n,x,y) {
-                     return element('place',{'id':id},[name(n),graphics([position(x,y)])]);
+                     return elementNS('place'
+                                     ,{'id':id}
+                                     ,[name(n),graphics([position(x,y)])]);
                    }
   var transition = function(id,n,x,y) {
-                    return element('transition',{'id':id},[name(n),graphics([position(x,y)])]);
+                    return elementNS('transition'
+                                    ,{'id':id}
+                                    ,[name(n),graphics([position(x,y)])]);
                    }
-  var arc = function(id,source,target) {
-             return element('arc',{'id':id,'source':source,'target':target});
-            }
-  var net = function(type,id,children) {
-              return element('net',{'type':type,'id':id},children);
-            }
+  var arc        = function(id,source,target) {
+                     return elementNS('arc'
+                                    ,{'id':id,'source':source,'target':target});
+                   }
+  var net        = function(type,id,children) {
+                     return elementNS('net'
+                                     ,{'type':type,'id':id}
+                                     ,children);
+                   }
 
   // start building: places, transitions, arcs, then the full net
   var ps = []; 
@@ -88,7 +96,7 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
     var dx = d ? d.attributes['x'].nodeValue : '1000';
     var dy = d ? d.attributes['y'].nodeValue : '1000';
     this.setViewSize(px,py,dx,dy);
-    message('**'+p+'|'+d+' : '+px+' '+py+' '+dx+' '+dy);
+    message('** net dimensions '+p+'|'+d+' : '+px+' '+py+' '+dx+' '+dy);
     // if dimensions are missing, we'll try to estimate them
     // (we keep track of max node coordinates)
     if (!d) { dx = 0; dy = 0; } 
@@ -143,10 +151,10 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
                     // (apparently, that issue is opera-specific, works in firefox?)
                     // so we use the min/max node coordinates as an approximation
                     // [PNML files should specify intended dimensions to avoid this]
-      var bbox = this.contents.getBBox(); // TODO: why isn't this tight in opera?
+      var bbox = this.contents.getBBox(); // TODO: why isn't this tight in opera 10.10?
       message('** (min/max) '+px+' '+py+' '+dx+' '+dy);
       listProperties('contents.BBox',bbox);
-      if (navigator.appName.match(/Opera/)) // TODO: test for bug rather than browser
+      if (false&&navigator.appName.match(/Opera/)) // TODO: bounding box bug fixed in 10.51?
         this.setViewSize(px,py,dx+10,dy+10);
       else
         this.setViewSize(bbox.x,bbox.y,bbox.width,bbox.height);
@@ -163,68 +171,124 @@ Net.prototype.addImportExportControls = function () {
 
   var net = this; // for use in event handler closures
 
-  var importExportGroup = document.createElement('label');
-  // importExportGroup.setAttribute('style','background: darkgrey');
-  importExportGroup.appendChild(document.createTextNode('import PNML: '));
-  this.svgDiv.insertBefore(importExportGroup,this.svg);
-
   // importing PNML files (partially implemented)
-  var importPNML = document.createElement('input');
-  importPNML.type  = 'file';
-  importPNML.title = 'import PNML';
-  importPNML.id    = 'importPNML';
-  importPNML.style.width = 'auto';
-  // TODO: which event to listen to? change is much too frequent, input doesn't
-  //       work in firefox
-  importPNML.addEventListener('submit',function(){
-      // grr; selection only gives fake_path + file name, no relative path
-      // workaround: enter relative path manually in input field
-      // this workaround doesn't work in firefox (field not editable)
-      message('importing PNML file '+this.value+' - '+this.files);
-      var filename = this.value.replace(/^C:[\/\\]fake_path[\/\\]/,'');
-      var xhr = new XMLHttpRequest(); // browser-specific, ok in opera/firefox
-      xhr.open('GET',filename,false);
-      xhr.send(null);
-      var pnml = xhr.responseXML;
-      net.removeAll();
-      net.fromPNML(pnml);
+  var importButton   = element('input'
+                              ,{"type" : 'submit'
+                               ,"id"   : 'importButton'
+                               ,"value": 'import PNML'
+                               });
+  var importSelector = element('input'
+                              ,{"type" : 'file'
+                               ,"id"   : 'importSelector'
+                               ,"title": 'select PNML file to import'
+                               ,"style": 'width: auto'
+                               });
+  var importForm = element('form'
+                          ,{"action":'#'
+                           ,'style':'display: inline'}
+                          ,[importButton,importSelector]);
+  importForm.addEventListener('submit',function(){
+      // grr; while this works for files in the current directory, things get
+      // difficult if one likes to organize one's file in a pnml/ subdirectory:
+      // selection only gives fake_path + file name, no relative path (security
+      // considerations)
+      //
+      // workaround in opera: enter relative path manually in input field
+      // this workaround doesn't work in firefox (field is not editable)
+      // possible workaround in firefox: use File API, read file without path
+      // this doesn't work in opera (no File API yet), but if opera starts
+      // supporting the File API, this would be the preferred/standard way 
+      // (once we figure a way to parse the string into xml)
+      //
+      // (a more radical approach would be to switch to using the browser's
+      // widget/elevated-permissions modes)
+      message('importing PNML file '+importSelector.value);
+      if (importSelector.files) { // use File API, if present
+        message('File API available');
+        var contents = importSelector.files.item(0).getAsText(null);
+        messagePre(contents);
+        if (DOMParser) {
+          var parser = new DOMParser();
+          var pnml   = parser.parseFromString(contents,'text/xml');
+        } else
+          message('sorry, cannot find DOMParser');
+      } else {
+        var filename = importSelector.value.replace(/^C:[\/\\]fake_?path[\/\\]/,'');
+        message('(useable portion of) filename is: '+filename);
+        message('(note: local filenames should be written as _relative_ paths with _forward_ slashes?)');
+        if (XMLHttpRequest) { // conventional route, limited by filepath security
+          message('falling back to XMLHttpRequest');
+          var xhr = new XMLHttpRequest(); // browser-specific, ok in opera/firefox
+          try {
+            xhr.open('GET',filename,false);
+            xhr.send(null);
+          } catch (e) {
+            message('unable to import PNML file: ');
+            messagePre(e.toString());
+          }
+          var pnml = xhr.responseXML;
+          // listProperties('xhr',xhr,/./,true);
+        } else
+          message('unable to import PNML file');
+      }
+      if (pnml) {
+        // TODO: is there a way to determine whether the load was successful?
+        //       it seems we can get back a non-null but useless responseXML
+        //       if the filename wasn't valid, and the status doesn't seem
+        //       helpful for local files (when there was no webserver involved)?
+        net.removeAll();
+        try { net.fromPNML(pnml) }
+        catch (e) {
+          message('PNML document could not be interpreted (is the filename correct?):');
+          messagePre(e.toString());
+          messagePre(listXML('',pnml).join("\n"));
+        }
+      } else
+        message('no PNML file loaded')
     },false);
-  importExportGroup.appendChild(importPNML);
 
   // exporting SVG files
-  // TODO: are size limits for data:-url still an issue? use document.write instead?
-  var exportSVG =document.createElement('input');
-  exportSVG.type = 'button';
-  exportSVG.id   = 'exportSVG';
-  exportSVG.value = 'export SVG';
-  exportSVG.style.width = 'auto';
+  // TODO: - are size limits for data:-url still an issue? use document.write instead?
+  //       - unlike opera, firefox doesn't seem to give us control of where to
+  //         save, and under what name (everything goes in the download folder,
+  //         with automatically generated names)
+  var exportSVG = element('input'
+                         ,{"type" : 'button'
+                          ,"id"   : 'exportSVG'
+                          ,"value": 'export SVG'
+                          ,"style": 'margin-left: 10px'
+                          });
   exportSVG.addEventListener('click',function(){
       // clone svg, then remove interactive elements (not needed for static output)
-      // TODO: cloning in opera 10.10 seems to convert some attribute representations
-      //       (eg, 'cx' from '100.1' to '100,1')
+      // NOTE: cloning in opera 10.10 seems to convert some attribute representations
+      //       (eg, 'cx' from '100.1' to '100,1'); seems fixed in 10.51
       var svgOut = net.svg.cloneNode(true);
       svgOut.removeChild(svgOut.querySelector('#cursorPalette'));
       svgOut.removeChild(svgOut.querySelector('#netHelp'));
       // TODO: should we use DOM3 Load and Save / XMLSerializer / toXMLString instead?
-      //        or the DOM tree walkers? otherwise, factor listXML from debug to utils
+      //        or the DOM tree walkers? otherwise, move listXML from debug to utils
       var xml = listXML('',svgOut).join("\n");
       messagePre(xml);
       delete svgOut;
       // location = 'data:image/svg+xml,'+encodeURIComponent(xml);
+      // TODO: firefox used to crash here; no longer, but what was the problem?
       // use application/octet-stream to force "save as"-dialogue
       location = 'data:application/octet-stream,'+encodeURIComponent(xml);
-      // TODO: firefox used to crash here; no longer, but what was the problem?
     },false);
-  exportSVG.setAttribute('style','margin-left: 10px');
-  importExportGroup.appendChild(exportSVG);
 
   // exporting PNML files (partially implemented)
-  // TODO: are size limits for data:-url still an issue? use document.write instead?
-  var exportPNML =document.createElement('input');
-  exportPNML.type = 'button';
-  exportPNML.id   = 'exportPNML';
-  exportPNML.value = 'export PNML';
-  exportPNML.style.width = 'auto';
+  // TODO: - are size limits for data:-url still an issue? use document.write instead?
+  //         (for now, we leave the debug printouts in; if data: should fail, one
+  //         could still copy from the messages div to avoid loosing work)
+  //       - unlike opera, firefox doesn't seem to give us control of where to
+  //         save, and under what name (everything goes in the download folder,
+  //         with automatically generated names)
+  var exportPNML = element('input'
+                          ,{"type" : 'button'
+                           ,"id"   : 'exportPNML'
+                           ,"value": 'export PNML'
+                           ,"style": 'margin-left: 10px'
+                           });
   exportPNML.addEventListener('click',function(){
       var pnml = net.toPNML();
       messagePre(pnml);
@@ -232,8 +296,11 @@ Net.prototype.addImportExportControls = function () {
       // use application/octet-stream to force "save as"-dialogue
       location = 'data:application/octet-stream,'+encodeURIComponent(pnml);
     },false);
-  exportPNML.setAttribute('style','margin-left: 10px');
-  importExportGroup.appendChild(exportPNML);
+
+  var importExportGroup = element('div'
+                                 ,{"id":'importExportGroup'}
+                                 ,[importForm,exportSVG,exportPNML]);
+  this.svgDiv.insertBefore(importExportGroup,this.svg);
 }
 
 

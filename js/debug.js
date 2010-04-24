@@ -163,7 +163,8 @@ function JSEval(consoleID) {
     },false);
 }
 
-// TODO: should we use a less explicit method for this?
+// TODO: - should we use a less explicit method for this?
+//       - move to utils?
 /**
  * formatted XML listing of DOM tree xml; returns list of lines;
  * typical use: messagePre(listXML('',xml).join("\n"))

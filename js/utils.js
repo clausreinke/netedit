@@ -1,6 +1,7 @@
 //
 // auxiliary definitions
 //
+// TODO: wrap in its own namespace
 
 /**
  * bind function 'this'-reference (mostly so that we can register 
@@ -18,6 +19,20 @@ function bind(f,x) {
   };
 }
 
+/**
+ * shorthand notation for element creation
+ * 
+ * @param tag
+ * @param attributes
+ * @param children
+ */
+function element(tag,attributes,children) {
+   var e = document.createElement(tag);
+   for (var a in attributes) e.setAttribute(a,attributes[a]);
+   for (var c in children) e.appendChild(children[c]);
+   return e;
+}
+
 // opera does sequences of style.property=blah setters just fine;
 // firefox (mostly) keeps the properties in the javascript object, 
 // but uses only the last one set for actual css styling, 
@@ -31,7 +46,7 @@ function bind(f,x) {
 //     replacing x.style.prop= with x.setAttributeNS(null,'prop',)
 //     where possible (eg, where svg attributes overlap css properties)
 // TODO: instead of patching after modification, which is ugly and easy to
-//       forget provide a patching modification operation (which, for opera,
+//       forget, provide a patching modification operation (which, for opera,
 //       could simply modify the style attributes but, for firefox, needs to
 //       do some string munging on cssText..
 function patchStyle(x) {
