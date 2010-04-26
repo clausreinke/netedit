@@ -46,9 +46,7 @@ function initNet() {
   net.addImportExportControls();
   net.toggleHelp();
 
-  var ls = net.toString().split("\n");
-  for (var l in ls) message(ls[l]);
-
+  messagePre(net.toString());
 }
 
 ]]></script>
@@ -59,8 +57,6 @@ function initNet() {
 <div id='messages'/>
 
 <hr/>
-
-
 
 </body>
 

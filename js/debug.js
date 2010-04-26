@@ -14,6 +14,7 @@
 // improve my understanding and to gain more flexibility/scriptability
 //
 
+// logging messages to div element {{{
 /**
  * use document element div (default 'messages') as a simple output console for
  * message msg
@@ -38,6 +39,7 @@ function messagePre(msg,div) {
   pre.appendChild(document.createTextNode(msg));
   msgs.appendChild(pre);
 }
+// }}}
 
 /**
  * wrap object x method f with before/after/around advice, for
@@ -47,7 +49,7 @@ function messagePre(msg,div) {
  * @param f
  * @param advice
  */
-function wrap(x,f,advice) {
+function wrap(x,f,advice) { // {{{
   var wrapper = function(oldf) {
     return function() { 
       var args = [];
@@ -70,7 +72,7 @@ function wrap(x,f,advice) {
     message('wrapped '+f); // +' = '+oldf);
   } else
     message('wrap('+x+','+f+') failed: '+x.hasOwnProperty(f)+' '+x[f]+' '+(f in x)+' '+(typeof x[f]));
-}
+} // }}}
 
 // TODO: marginally useful so far, needs elaboration
 /**
@@ -81,7 +83,7 @@ function wrap(x,f,advice) {
  * @param filter
  * @param nofunctions
  */
-function listProperties(pre,x,filter,nofunctions) {
+function listProperties(pre,x,filter,nofunctions) { // {{{
   message('// ----start---- listing attributes for '+pre);
   if (x.attributes)
     for (var i=0; i<x.attributes.length; i++)
@@ -96,7 +98,7 @@ function listProperties(pre,x,filter,nofunctions) {
     }
   }
   message('// ----end------ listing properties for '+pre);
-}
+} // }}}
 
 // TODO: - use querySelector
 //       - support interactive resize/hide
@@ -105,7 +107,7 @@ function listProperties(pre,x,filter,nofunctions) {
  * 
  * @param consoleID
  */
-function ObjectViewer(consoleID) {
+function ObjectViewer(consoleID) { // {{{
   var console = document.getElementById(consoleID);
 
   var form = document.createElement('form');
@@ -133,7 +135,7 @@ function ObjectViewer(consoleID) {
         while (console.hasChildNodes())
           console.removeChild(console.firstChild);
     },false);
-}
+} // }}}
 
 /**
  * interactively evaluate javascript code (creates its own input field
@@ -141,7 +143,7 @@ function ObjectViewer(consoleID) {
  * 
  * @param consoleID
  */
-function JSEval(consoleID) {
+function JSEval(consoleID) { // {{{
   var console = document.getElementById(consoleID);
 
   var form = document.createElement('form');
@@ -161,9 +163,9 @@ function JSEval(consoleID) {
       catch (e) { var result = ' ! '+e; };
       message(result,consoleID);
     },false);
-}
+} // }}}
 
-// TODO: - should we use a less explicit method for this?
+// TODO: - should we use a less explicit/pre-defined method for this?
 //       - move to utils?
 /**
  * formatted XML listing of DOM tree xml; returns list of lines;
@@ -172,7 +174,7 @@ function JSEval(consoleID) {
  * @param prefix
  * @param xml
  */
-function listXML(prefix,xml) {
+function listXML(prefix,xml) { // {{{
   var text = [];
   if (xml.nodeType===3) // just a text node
     text = [prefix+xml.textContent];
@@ -193,4 +195,5 @@ function listXML(prefix,xml) {
       text = [prefix+tag+'/>'];
   }
   return text;
-}
+} // }}}
+

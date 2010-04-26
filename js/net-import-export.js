@@ -2,11 +2,16 @@
 // Net import/export (load on top of net.js)
 //
 
+// TODO: we have extra lines accumulating around text node contents
+//       during import/export loops (as well as extra whitespace around
+//       text nodes during Node.rename)
+
 /**
  * render Net as PNML document string
  */
-Net.prototype.toPNML = function() {
+Net.prototype.toPNML = function() { // {{{
   // every XML file comes down to XML elements
+  // TODO: move elementNS to utils.js, and use generally
   var elementNS = function(tag,attributes,children) {
                     var e = document.createElementNS(null,tag);
                     for (var a in attributes) e.setAttributeNS(null,a,attributes[a]);
@@ -69,7 +74,7 @@ Net.prototype.toPNML = function() {
   pnml.documentElement.appendChild(n);
 
   return listXML('',pnml.documentElement).join("\n");
-}
+} // }}}
 
 /**
  * extract some Net data (dimensions, places, transitions, arcs, node names and
@@ -82,7 +87,7 @@ Net.prototype.toPNML = function() {
  * @param scale
  * @param unit
  */
-Net.prototype.fromPNML = function(pnml,scale,unit) {
+Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
   if (pnml.querySelectorAll) {
     // if the standard specifies any default scale/unit at all, not all PNML
     // files use those
@@ -103,6 +108,8 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
 
     // extract minimal info about places (name, position), transitions (name,
     // position) and arcs (source, target), add corresponding elements to Net
+    // note: we could common up the two node loops place/transition, but
+    //       attributes for higher level nets will differ between the two
     var places = pnml.querySelectorAll('place');
     for (var i=0; i<places.length; i++) {
       var place = places[i];
@@ -161,13 +168,13 @@ Net.prototype.fromPNML = function(pnml,scale,unit) {
     }
   } else
     message('querySelectorAll not supported');
-}
+} // }}}
 
 /**
  * add import PNML, export PNML, export SVG controls to document, just before
  * the Net's SVG node;
  */
-Net.prototype.addImportExportControls = function () {
+Net.prototype.addImportExportControls = function () { // {{{
 
   var net = this; // for use in event handler closures
 
@@ -183,40 +190,51 @@ Net.prototype.addImportExportControls = function () {
                                ,"title": 'select PNML file to import'
                                ,"style": 'width: auto'
                                });
-  var importForm = element('form'
-                          ,{"action":'#'
-                           ,'style':'display: inline'}
-                          ,[importButton,importSelector]);
-  importForm.addEventListener('submit',function(){
-      // grr; while this works for files in the current directory, things get
-      // difficult if one likes to organize one's file in a pnml/ subdirectory:
-      // selection only gives fake_path + file name, no relative path (security
-      // considerations)
+  var importForm     = element('form'
+                              ,{'action':'#'
+                               ,'style' :'display: inline'}
+                              ,[importButton,importSelector]);
+  importForm.addEventListener('submit',function(event){
+      // grr; while it is easy to import files in the current directory, things
+      // get difficult if one likes to organize one's file in a pnml/
+      // subdirectory: file selectors only give fake_path + file name, no
+      // relative path (security considerations which apply to absolute paths
+      // seem to have been interpreted too eagerly?);
       //
       // workaround in opera: enter relative path manually in input field
-      // this workaround doesn't work in firefox (field is not editable)
-      // possible workaround in firefox: use File API, read file without path
-      // this doesn't work in opera (no File API yet), but if opera starts
-      // supporting the File API, this would be the preferred/standard way 
-      // (once we figure a way to parse the string into xml)
+      // this workaround doesn't work in firefox (field is not editable);
+      // it is also awkward because the file selector will insert absolute
+      // paths (and with '\' instead of '/' on windows), which need to be
+      // edited by hand (field value not accessible);
       //
-      // (a more radical approach would be to switch to using the browser's
+      // workaround in firefox: use File API, read file without path
+      // this doesn't work in opera (no File API yet), but if opera starts
+      // supporting the File API, this would be the preferred/standard way,
+      // so we use File Api by default, and XMLHttpRequest as a fallback;
+      //
+      // (a more radical approach would be to switch to using the browsers'
       // widget/elevated-permissions modes)
+      // TODO: clean up!
+      var pnml = null;
       message('importing PNML file '+importSelector.value);
       if (importSelector.files) { // use File API, if present
         message('File API available');
-        var contents = importSelector.files.item(0).getAsText(null);
-        messagePre(contents);
-        if (DOMParser) {
-          var parser = new DOMParser();
-          var pnml   = parser.parseFromString(contents,'text/xml');
-        } else
-          message('sorry, cannot find DOMParser');
-      } else {
-        var filename = importSelector.value.replace(/^C:[\/\\]fake_?path[\/\\]/,'');
-        message('(useable portion of) filename is: '+filename);
-        message('(note: local filenames should be written as _relative_ paths with _forward_ slashes?)');
-        if (XMLHttpRequest) { // conventional route, limited by filepath security
+        if (importSelector.files.item(0)) {
+          var contents = importSelector.files.item(0).getAsText(null);
+          messagePre(contents);
+          if (DOMParser) {
+            var parser = new DOMParser();
+            var pnml   = parser.parseFromString(contents,'text/xml');
+          } else
+            message('sorry, cannot find DOMParser');
+        } else {
+          message('sorry, no file name specified');
+        }
+      } else if (XMLHttpRequest) { // conventional route, limited by filepath security
+        if (importSelector.value) {
+          var filename = importSelector.value.replace(/^C:[\/\\]fake_?path[\/\\]/,'');
+          message('(useable portion of) filename is: '+filename);
+          message('(note: local filenames should be written as _relative_ paths with _forward_ slashes)');
           message('falling back to XMLHttpRequest');
           var xhr = new XMLHttpRequest(); // browser-specific, ok in opera/firefox
           try {
@@ -229,8 +247,9 @@ Net.prototype.addImportExportControls = function () {
           var pnml = xhr.responseXML;
           // listProperties('xhr',xhr,/./,true);
         } else
-          message('unable to import PNML file');
-      }
+          message('sorry, no file name specified');
+      } else
+        message('unable to import PNML file');
       if (pnml) {
         // TODO: is there a way to determine whether the load was successful?
         //       it seems we can get back a non-null but useless responseXML
@@ -244,7 +263,9 @@ Net.prototype.addImportExportControls = function () {
           messagePre(listXML('',pnml).join("\n"));
         }
       } else
-        message('no PNML file loaded')
+        message('no PNML file loaded');
+      event.preventDefault();
+      return false;
     },false);
 
   // exporting SVG files
@@ -301,6 +322,5 @@ Net.prototype.addImportExportControls = function () {
                                  ,{"id":'importExportGroup'}
                                  ,[importForm,exportSVG,exportPNML]);
   this.svgDiv.insertBefore(importExportGroup,this.svg);
-}
-
+} // }}}
 

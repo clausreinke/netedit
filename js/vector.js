@@ -1,4 +1,14 @@
+//
+// minimal position representation and vector operations
+// (load before net-elements.js and net.js)
+//
 
+/**
+ * basic 2d positions, with interface to 2d vectors
+ * 
+ * @param x
+ * @param y
+ */
 function Pos(x,y) {
   this.x = x;
   this.y = y;
@@ -13,6 +23,12 @@ Pos.prototype.add = function(vec) {
   return new Pos(vec.x+this.x,vec.y+this.y);
 }
 
+/**
+ * 2d vectors, just the operations used in net editor
+ * 
+ * @param x
+ * @param y
+ */
 function Vector(x,y) {
   this.x = x;
   this.y = y;

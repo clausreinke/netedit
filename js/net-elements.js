@@ -472,7 +472,7 @@ Arc.prototype.updateView = function() {
   var targetCon = this.target.connectorFor(this.source.pos);
 
   this.a.setAttributeNS(null,'d','M '+sourceCon.x+' '+sourceCon.y
-                         +'L '+targetCon.x+' '+targetCon.y);
+                                +'L '+targetCon.x+' '+targetCon.y);
 }
 
 /**

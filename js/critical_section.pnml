@@ -1,0 +1,159 @@
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+ <net type="http://www.pnml.org/version-2009/grammar/ptnet" id="net">
+  <name>
+   <text>
+    example
+   </text>
+  </name>
+  <graphics>
+   <dimension x="500" y="300"/>
+   <position x="0" y="0"/>
+  </graphics>
+  <transition id="t1">
+   <name>
+    <text>
+     acquire
+    </text>
+   </name>
+   <graphics>
+    <position x="89.68254089355469" y="98.4126968383789"/>
+   </graphics>
+  </transition>
+  <transition id="t2">
+   <name>
+    <text>
+     release
+    </text>
+   </name>
+   <graphics>
+    <position x="90.4761962890625" y="224.60317993164062"/>
+   </graphics>
+  </transition>
+  <transition id="t5">
+   <name>
+    <text>
+     acquire
+    </text>
+   </name>
+   <graphics>
+    <position x="303.17462158203125" y="102.38095092773438"/>
+   </graphics>
+  </transition>
+  <transition id="t6">
+   <name>
+    <text>
+     release
+    </text>
+   </name>
+   <graphics>
+    <position x="303.17462158203125" y="218.2539825439453"/>
+   </graphics>
+  </transition>
+  <transition id="process1_needs_resource">
+   <name>
+    <text>
+     need_shared_resource
+    </text>
+   </name>
+   <graphics>
+    <position x="3.9682540893554688" y="176.19049072265625"/>
+   </graphics>
+  </transition>
+  <transition id="need_shared_resource">
+   <name>
+    <text>
+     need_shared_resource
+    </text>
+   </name>
+   <graphics>
+    <position x="381.74603271484375" y="187.3015899658203"/>
+   </graphics>
+  </transition>
+  <place id="in1">
+   <name>
+    <text>
+     process1_ready
+    </text>
+   </name>
+   <graphics>
+    <position x="89.68254089355469" y="35.71428680419922"/>
+   </graphics>
+  </place>
+  <place id="out2">
+   <name>
+    <text>
+     process1_critical
+    </text>
+   </name>
+   <graphics>
+    <position x="89.68254089355469" y="161.11111450195312"/>
+   </graphics>
+  </place>
+  <place id="p1">
+   <name>
+    <text>
+     process1_non_critical
+    </text>
+   </name>
+   <graphics>
+    <position x="89.68254089355469" y="276.19049072265625"/>
+   </graphics>
+  </place>
+  <place id="p2">
+   <name>
+    <text>
+     process2_ready
+    </text>
+   </name>
+   <graphics>
+    <position x="303.17462158203125" y="42.06349182128906"/>
+   </graphics>
+  </place>
+  <place id="p3">
+   <name>
+    <text>
+     process2_critical
+    </text>
+   </name>
+   <graphics>
+    <position x="303.17462158203125" y="161.90476989746094"/>
+   </graphics>
+  </place>
+  <place id="p4">
+   <name>
+    <text>
+     process2_non_critical
+    </text>
+   </name>
+   <graphics>
+    <position x="303.17462158203125" y="276.984130859375"/>
+   </graphics>
+  </place>
+  <place id="p7">
+   <name>
+    <text>
+     shared_resource
+    </text>
+   </name>
+   <graphics>
+    <position x="201.58731079101562" y="165.87303161621094"/>
+   </graphics>
+  </place>
+  <arc id="arc152" source="in1" target="t1"/>
+  <arc id="arc153" source="t1" target="out2"/>
+  <arc id="arc154" source="out2" target="t2"/>
+  <arc id="arc155" source="t2" target="p1"/>
+  <arc id="arc156" source="p2" target="t5"/>
+  <arc id="arc157" source="t5" target="p3"/>
+  <arc id="arc158" source="p3" target="t6"/>
+  <arc id="arc159" source="t6" target="p4"/>
+  <arc id="arc160" source="p7" target="t5"/>
+  <arc id="arc161" source="p7" target="t1"/>
+  <arc id="arc162" source="t2" target="p7"/>
+  <arc id="arc163" source="t6" target="p7"/>
+  <arc id="arc164" source="need_shared_resource" target="p2"/>
+  <arc id="arc165" source="p1" target="process1_needs_resource"/>
+  <arc id="arc166" source="process1_needs_resource" target="in1"/>
+  <arc id="arc167" source="p4" target="need_shared_resource"/>
+ </net>
+</pnml>
