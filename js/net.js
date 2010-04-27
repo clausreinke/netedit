@@ -25,9 +25,7 @@ function Cursor(net) {
   var r       = this.net.r/5;
   var offset  = this.net.r;
 
-  // TODO: instead of hiding the various cursor shapes in the
-  //       palette group, keep off-screen references and simply
-  //       assign the active shape to the palette?
+  // for custom cursors, we add the active shape to the palette
   this.palette = document.createElementNS(svgNS,'g');
   this.palette.id = 'cursorPalette';
   this.mode    = ''; // TODO: - an enum would be nicer
@@ -40,13 +38,11 @@ function Cursor(net) {
     this.transition.id = 'transitionCursor';
     this.transition.style.display = 'none';
     patchStyle(this.transition);
-    this.palette.appendChild(this.transition);
 
   this.place  = Place.prototype.placeShape(offset,-offset,r);
     this.place.id = 'placeCursor';
     this.place.style.display = 'none';
     patchStyle(this.place);
-    this.palette.appendChild(this.place);
 }
 
 // TODO: this patching is getting ridiculous
@@ -54,11 +50,9 @@ function Cursor(net) {
  * hide all Cursor shapes
  */
 Cursor.prototype.hideAll = function () {
+  if (this.palette.firstChild)
+    this.palette.removeChild(this.palette.firstChild);
   this.net.svg.style.cursor = 'auto';
-  this.transition.style.display = 'none'; 
-  patchStyle(this.transition);
-  this.place.style.display = 'none'; 
-  patchStyle(this.place);
 }
 
 /**
@@ -89,8 +83,7 @@ Cursor.prototype.moveCursor = function () {
  */
 Cursor.prototype.transitionCursor = function () {
   this.hideAll();
-  this.transition.style.display = 'inline';
-  patchStyle(this.transition);
+  this.palette.appendChild(this.transition);
 }
 
 /**
@@ -98,8 +91,7 @@ Cursor.prototype.transitionCursor = function () {
  */
 Cursor.prototype.placeCursor = function () {
   this.hideAll();
-  this.place.style.display = 'inline';
-  patchStyle(this.place);
+  this.palette.appendChild(this.transition);
 }
 
 /**
