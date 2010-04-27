@@ -2,6 +2,7 @@
 // auxiliary definitions
 //
 // TODO: wrap in its own namespace
+// TODO: add updateElement/updateElementNS
 
 /**
  * bind function 'this'-reference (mostly so that we can register 
@@ -33,6 +34,21 @@ function element(tag,attributes,children) {
    return e;
 }
 
+/**
+ * shorthand notation for namespaced element creation
+ * 
+ * @param ns
+ * @param tag
+ * @param attributes
+ * @param children
+ */
+function elementNS(ns,tag,attributes,children) {
+   var e = document.createElementNS(ns,tag);
+   for (var a in attributes) e.setAttributeNS(null,a,attributes[a]);
+   for (var c in children) e.appendChild(children[c]);
+   return e;
+}
+
 // opera does sequences of style.property=blah setters just fine;
 // firefox (mostly) keeps the properties in the javascript object, 
 // but uses only the last one set for actual css styling, 
@@ -44,11 +60,15 @@ function element(tag,attributes,children) {
 //       attributes of the javascript object are also gone?)
 // ==> we now try to use object attributes instead of style properties,
 //     replacing x.style.prop= with x.setAttributeNS(null,'prop',)
-//     where possible (eg, where svg attributes overlap css properties)
-// TODO: instead of patching after modification, which is ugly and easy to
-//       forget, provide a patching modification operation (which, for opera,
-//       could simply modify the style attributes but, for firefox, needs to
-//       do some string munging on cssText..
+//     where possible (eg, where svg attributes overlap css properties);
+//     so far, that avoids the need for patching, so this function should
+//     no longer be needed!
+//
+// TODO: if style patching should be needed again: instead of patching after
+//       modification, which is ugly and easy to forget, provide a patching
+//       modification operation (which, for opera, could simply modify the
+//       style attributes but, for firefox, needs to do some string munging 
+//       on cssText..)
 function patchStyle(x) {
   var cssvals = ['cursor','display'];
   var jsvals  = ['cursor','display'];

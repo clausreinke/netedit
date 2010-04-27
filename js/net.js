@@ -133,11 +133,12 @@ function Net(id,width,height) {
   this.svgDiv = document.createElement('div');
   this.svgDiv.id = 'svgDiv';
   this.svgDiv.setAttribute('style','margin: 10px; background: lightgrey');
-  this.svg    = document.createElementNS(svgNS,'svg');
+  this.svg    = elementNS(svgNS,'svg'
+                         ,{'version':'1.1'
+                          ,'width':'100%'
+                          ,'height':'10cm'
+                          });
   this.svg.id = id;
-  this.svg.setAttributeNS(null,'version','1.1');
-  this.svg.setAttributeNS(null,'width','100%');
-  this.svg.setAttributeNS(null,'height','10cm');
   this.svgDiv.appendChild(this.svg);
 
   // opera doesn't register mousemove events where there is no svg content,
@@ -155,8 +156,7 @@ function Net(id,width,height) {
   // put "real" contents such as nodes and arcs into their own group, to keep
   // them separate from administrative stuff such as backdrop, cursor, defs
   // (also helps with computing bounding boxes)
-  this.contents = document.createElementNS(svgNS,'g');
-  this.contents.id = 'contents';
+  this.contents = elementNS(svgNS,'g',{'id':'contents'});
   this.svg.appendChild(this.contents);
 
   // TODO: maintain separate groups for places/transitions/arcs and labels,
@@ -233,9 +233,10 @@ Net.prototype.setViewSize = function (x,y,w,h) {
  * add backdrop (to capture events in the absence of other SVG elements)
  */
 Net.prototype.addBackdrop = function () {
-  this.svgBackdrop = document.createElementNS(svgNS,'rect');
-  this.svgBackdrop.id = 'svgBackdrop';
-  this.svgBackdrop.setAttributeNS(null,'style','fill: lightgrey');
+  this.svgBackdrop = elementNS(svgNS,'rect'
+                              ,{'id':'svgBackdrop'
+                               ,'style':'fill: lightgrey'
+                               });
   this.updateBackdrop();
   this.svg.appendChild(this.svgBackdrop);
 }
@@ -252,10 +253,11 @@ Net.prototype.updateBackdrop = function () {
  * add help text (visibility can be toggled by pressing '?')
  */
 Net.prototype.addHelp = function () {
-  this.help = document.createElementNS(svgNS,'text');
-  this.help.setAttributeNS(null,'fill','blue');
-  this.help.setAttributeNS(null,'font-size','10');
-  this.help.id = 'netHelp';
+  this.help = elementNS(svgNS,'text'
+                       ,{'id':'netHelp'
+                        ,'fill':'blue'
+                        ,'font-size':'10'
+                        });
   var lines = ['press "m" then use mouse to move nodes'
               ,'press "t" then click on background to add transitions'
               ,'press "p" then click on background to add places'
@@ -269,10 +271,8 @@ Net.prototype.addHelp = function () {
               ,'press "?" to toggle this help text'
               ];
   for (var l in lines) {
-    var tspan = document.createElementNS(svgNS,'tspan');
-    tspan.setAttributeNS(null,'dy','1em');
-    tspan.setAttributeNS(null,'x','0em');
-    tspan.appendChild(document.createTextNode(lines[l]));
+    var tspan = elementNS(svgNS,'tspan',{'dy':'1em','x':'0em'}
+                         ,[document.createTextNode(lines[l])]);
     this.help.appendChild(tspan);
   }
   this.help.style.display = 'none';
@@ -291,22 +291,20 @@ Net.prototype.toggleHelp = function() {
  * SVG definitions (currently just an arrowhead marker for arcs)
  */
 Net.prototype.addDefs = function () {
-  var defs   = document.createElementNS(svgNS,'defs');
-  var marker = document.createElementNS(svgNS,'marker');
+  var marker = elementNS(svgNS,'marker'
+                        ,{'id':'Arrow'
+                         ,'viewBox':'0 0 10 10'
+                         ,'refX':'10'
+                         ,'refY':'5'
+                         ,'markerUnits':'userSpaceOnUse'
+                         ,'markerWidth':'10'
+                         ,'markerHeight':'10'
+                         ,'orient':'auto'
+                         }
+                        ,[elementNS(svgNS,'path'
+                                   ,{'d':'M 0 0 L 10 5 L 0 10 z'})]);
 
-  marker.id = "Arrow";
-  marker.setAttributeNS(null,'viewBox','0 0 10 10');
-  marker.setAttributeNS(null,'refX','10');
-  marker.setAttributeNS(null,'refY','5');
-  marker.setAttributeNS(null,'markerUnits','userSpaceOnUse');
-  marker.setAttributeNS(null,'markerWidth','10');
-  marker.setAttributeNS(null,'markerHeight','10');
-  marker.setAttributeNS(null,'orient','auto');
-  var path = document.createElementNS(svgNS,'path');
-  path.setAttributeNS(null,'d','M 0 0 L 10 5 L 0 10 z');
-  marker.appendChild(path);
-
-  defs.appendChild(marker);
+  var defs   = elementNS(svgNS,'defs',{},[marker]);
   this.svg.appendChild(defs);
 }
 

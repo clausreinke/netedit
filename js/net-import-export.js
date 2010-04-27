@@ -10,39 +10,37 @@
  * render Net as PNML document string
  */
 Net.prototype.toPNML = function() { // {{{
-  // every XML file comes down to XML elements
-  // TODO: move elementNS to utils.js, and use generally
-  var elementNS = function(tag,attributes,children) {
-                    var e = document.createElementNS(null,tag);
-                    for (var a in attributes) e.setAttributeNS(null,a,attributes[a]);
-                    for (var c in children) e.appendChild(children[c]);
-                    return e;
-                  }
   // auxiliary definitions for PNML format elements
-  var dimension  = function(x,y) { return elementNS('dimension',{'x':x,'y':y}); }
-  var position   = function(x,y) { return elementNS('position',{'x':x,'y':y}); }
-  var graphics   = function(children) { return elementNS('graphics',{},children); }
+  var dimension  = function(x,y) { 
+                    return elementNS(null,'dimension',{'x':x,'y':y});
+                   }
+  var position   = function(x,y) {
+                    return elementNS(null,'position',{'x':x,'y':y});
+                   }
+  var graphics   = function(children) {
+                    return elementNS(null,'graphics',{},children);
+                   }
   var name       = function(text) {
-                     return elementNS('name',{}
-                                     ,[elementNS('text',{}
+                     return elementNS(null,'name',{}
+                                     ,[elementNS(null,'text',{}
                                                 ,[document.createTextNode(text)])]);
                    }
   var place      = function(id,n,x,y) {
-                     return elementNS('place'
+                     return elementNS(null,'place'
                                      ,{'id':id}
                                      ,[name(n),graphics([position(x,y)])]);
                    }
   var transition = function(id,n,x,y) {
-                    return elementNS('transition'
+                    return elementNS(null,'transition'
                                     ,{'id':id}
                                     ,[name(n),graphics([position(x,y)])]);
                    }
   var arc        = function(id,source,target) {
-                     return elementNS('arc'
+                     return elementNS(null,'arc'
                                     ,{'id':id,'source':source,'target':target});
                    }
   var net        = function(type,id,children) {
-                     return elementNS('net'
+                     return elementNS(null,'net'
                                      ,{'type':type,'id':id}
                                      ,children);
                    }

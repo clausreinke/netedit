@@ -30,14 +30,15 @@ Node.prototype.toString = function() {
  * @param y
  */
 Node.prototype.addLabel = function (x,y) {
-  this.l = document.createElementNS(svgNS,'text');
-  this.l.setAttributeNS(null,'class','label');
-  this.l.setAttributeNS(null,'stroke','black');
-  this.l.setAttributeNS(null,'stroke-width','0.1px');
-  this.l.setAttributeNS(null,'font-size','10px');
-  this.l.setAttributeNS(null,'x',x);
-  this.l.setAttributeNS(null,'y',y);
-  this.l.appendChild(document.createTextNode(this.name));
+  this.l = elementNS(svgNS,'text'
+                    ,{'class':'label'
+                     ,'stroke':'black'
+                     ,'stroke-width':'0.1px'
+                     ,'font-size':'10px'
+                     ,'x':x
+                     ,'y':y
+                     }
+                    ,[document.createTextNode(this.name)]);
   this.l.addEventListener('click',bind(this.rename,this),false);
   this.net.contents.appendChild(this.l);
 }
@@ -214,14 +215,15 @@ Place.prototype.addView = function () {
  * @param r
  */
 Place.prototype.placeShape = function (x,y,r) {
-  var shape = document.createElementNS(svgNS,'circle');
-  shape.setAttributeNS(null,'class','place');
-  shape.setAttributeNS(null,'cx',x); 
-  shape.setAttributeNS(null,'cy',y); 
-  shape.setAttributeNS(null,'r',r);
-  shape.setAttributeNS(null,'stroke','black');
-  shape.setAttributeNS(null,'stroke-width','1px');
-  shape.setAttributeNS(null,'fill','white');
+  var shape = elementNS(svgNS,'circle'
+                       ,{'class':'place'
+                        ,'cx':x
+                        ,'cy':y
+                        ,'r':r
+                        ,'stroke':'black'
+                        ,'stroke-width':'1px'
+                        ,'fill':'white'
+                        });
   return shape;
 }
 
@@ -343,15 +345,16 @@ Transition.prototype.addView = function () {
 Transition.prototype.transitionShape = function (x,y,w,h) {
   var x2 = x - w/2;
   var y2 = y - h/2;
-  var t = document.createElementNS(svgNS,'rect');
-  t.setAttributeNS(null,'class','transition');
-  t.setAttributeNS(null,'x',x2); 
-  t.setAttributeNS(null,'y',y2); 
-  t.setAttributeNS(null,'width',w);
-  t.setAttributeNS(null,'height',h);
-  t.setAttributeNS(null,'stroke','black');
-  t.setAttributeNS(null,'stroke-width','1px');
-  t.setAttributeNS(null,'fill','darkgrey');
+  var t = elementNS(svgNS,'rect'
+                   ,{'class':'transition'
+                    ,'x':x2
+                    ,'y':y2
+                    ,'width':w
+                    ,'height':h
+                    ,'stroke':'black'
+                    ,'stroke-width':'1px'
+                    ,'fill':'darkgrey'
+                    });
   return t;
 }
 
@@ -452,11 +455,12 @@ Arc.prototype.toString = function() {
  * click events
  */
 Arc.prototype.addView = function() {
-  this.a = document.createElementNS(svgNS,'path');
+  this.a = elementNS(svgNS,'path'
+                    ,{'style':'stroke: black; stroke-width: 1px'
+                     ,'class':'arc'
+                     ,'marker-end':'url(#Arrow)'
+                     });
   this.a.arc = this;
-  this.a.setAttributeNS(null,'style', 'stroke: black; stroke-width: 1px');
-  this.a.setAttributeNS(null,'class','arc');
-  this.a.setAttributeNS(null,'marker-end','url(#Arrow)');
   this.a.addEventListener('click',bind(this.clickHandler,this),false);
 }
 
