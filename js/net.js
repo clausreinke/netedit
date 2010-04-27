@@ -36,12 +36,10 @@ function Cursor(net) {
 
   this.transition  = Transition.prototype.transitionShape(offset,-offset,tWidth,tHeight);
     this.transition.id = 'transitionCursor';
-    this.transition.style.display = 'none';
     patchStyle(this.transition);
 
   this.place  = Place.prototype.placeShape(offset,-offset,r);
     this.place.id = 'placeCursor';
-    this.place.style.display = 'none';
     patchStyle(this.place);
 }
 
@@ -91,7 +89,7 @@ Cursor.prototype.transitionCursor = function () {
  */
 Cursor.prototype.placeCursor = function () {
   this.hideAll();
-  this.palette.appendChild(this.transition);
+  this.palette.appendChild(this.place);
 }
 
 /**
