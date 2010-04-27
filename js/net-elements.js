@@ -200,8 +200,6 @@ Place.prototype.addView = function () {
   this.p = this.placeShape(this.pos.x,this.pos.y,this.r);
   this.p.id = this.id; // TODO: filter/translate to get valid/unique ids only!
   this.p.place = this;
-  // this.p.style.cursor = 'move';
-  patchStyle(this.p);
   this.p.addEventListener('click',bind(this.clickHandler,this),false);
   this.p.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
   this.p.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
@@ -326,8 +324,6 @@ Transition.prototype.addView = function () {
   this.t = this.transitionShape(this.pos.x,this.pos.y,this.width,this.height);
   this.t.id = this.id; // TODO: filter/translate to get valid/unique ids only!
   this.t.transition = this;
-  // this.t.style.cursor = 'move';
-  patchStyle(this.t);
   this.t.addEventListener('click',bind(this.clickHandler,this),false);
   this.t.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
   this.t.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
