@@ -198,9 +198,8 @@ Place.prototype.addView = function () {
   //       the latter; that would scale to groups of view objects; but we need
   //       to group labels separately, to ensure they are not overlapped by
   //       other elements:-(
-  this.p = this.placeShape(this.pos.x,this.pos.y,this.r);
-  this.p.id = this.id; // TODO: filter/translate to get valid/unique ids only!
-  this.p.place = this;
+  // TODO: filter/translate to get valid/unique ids only!
+  this.p = this.placeShape(this.id,this.pos.x,this.pos.y,this.r);
   this.p.addEventListener('click',bind(this.clickHandler,this),false);
   this.p.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
   this.p.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
@@ -214,9 +213,10 @@ Place.prototype.addView = function () {
  * @param y
  * @param r
  */
-Place.prototype.placeShape = function (x,y,r) {
+Place.prototype.placeShape = function (id,x,y,r) {
   var shape = elementNS(svgNS,'circle'
                        ,{'class':'place'
+                        ,'id':id
                         ,'cx':x
                         ,'cy':y
                         ,'r':r
@@ -323,9 +323,9 @@ Transition.prototype.addView = function () {
   //       the latter; that would scale to groups of view objects; but we need
   //       to group labels separately, to ensure they are not overlapped by
   //       other elements:-(
-  this.t = this.transitionShape(this.pos.x,this.pos.y,this.width,this.height);
-  this.t.id = this.id; // TODO: filter/translate to get valid/unique ids only!
-  this.t.transition = this;
+  // TODO: filter/translate to get valid/unique ids only!
+  this.t = this.transitionShape(this.id,this.pos.x,this.pos.y
+                                       ,this.width,this.height);
   this.t.addEventListener('click',bind(this.clickHandler,this),false);
   this.t.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
   this.t.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
@@ -342,11 +342,12 @@ Transition.prototype.addView = function () {
  * @param w
  * @param h
  */
-Transition.prototype.transitionShape = function (x,y,w,h) {
+Transition.prototype.transitionShape = function (id,x,y,w,h) {
   var x2 = x - w/2;
   var y2 = y - h/2;
   var t = elementNS(svgNS,'rect'
                    ,{'class':'transition'
+                    ,'id':id
                     ,'x':x2
                     ,'y':y2
                     ,'width':w
@@ -460,7 +461,6 @@ Arc.prototype.addView = function() {
                      ,'class':'arc'
                      ,'marker-end':'url(#Arrow)'
                      });
-  this.a.arc = this;
   this.a.addEventListener('click',bind(this.clickHandler,this),false);
 }
 

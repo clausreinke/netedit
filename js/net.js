@@ -34,11 +34,11 @@ function Cursor(net) {
                      //         obfuscating the code?
                      //       - at least use abstract mode getters..
 
-  this.transition  = Transition.prototype.transitionShape(offset,-offset,tWidth,tHeight);
-    this.transition.id = 'transitionCursor';
+  this.transition  = Transition.prototype.transitionShape('transitionCursor'
+                                                         ,offset,-offset
+                                                         ,tWidth,tHeight);
 
-  this.place  = Place.prototype.placeShape(offset,-offset,r);
-    this.place.id = 'placeCursor';
+  this.place  = Place.prototype.placeShape('placeCursor',offset,-offset,r);
 }
 
 // TODO: this patching is getting ridiculous
