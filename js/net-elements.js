@@ -214,17 +214,16 @@ Place.prototype.addView = function () {
  * @param r
  */
 Place.prototype.placeShape = function (id,x,y,r) {
-  var shape = elementNS(svgNS,'circle'
-                       ,{'class':'place'
-                        ,'id':id
-                        ,'cx':x
-                        ,'cy':y
-                        ,'r':r
-                        ,'stroke':'black'
-                        ,'stroke-width':'1px'
-                        ,'fill':'white'
-                        });
-  return shape;
+  return elementNS(svgNS,'circle'
+                  ,{'class':'place'
+                   ,'id':id
+                   ,'cx':x
+                   ,'cy':y
+                   ,'r':r
+                   ,'stroke':'black'
+                   ,'stroke-width':'1px'
+                   ,'fill':'white'
+                   });
 }
 
 /**
@@ -329,8 +328,7 @@ Transition.prototype.addView = function () {
   this.t.addEventListener('click',bind(this.clickHandler,this),false);
   this.t.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
   this.t.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
-  this.addLabel(this.pos.x+0.6*this.width
-               ,this.pos.y+0.5*this.height);
+  this.addLabel(this.pos.x+0.6*this.width,this.pos.y+0.5*this.height);
 }
 
 /**
@@ -343,20 +341,17 @@ Transition.prototype.addView = function () {
  * @param h
  */
 Transition.prototype.transitionShape = function (id,x,y,w,h) {
-  var x2 = x - w/2;
-  var y2 = y - h/2;
-  var t = elementNS(svgNS,'rect'
-                   ,{'class':'transition'
-                    ,'id':id
-                    ,'x':x2
-                    ,'y':y2
-                    ,'width':w
-                    ,'height':h
-                    ,'stroke':'black'
-                    ,'stroke-width':'1px'
-                    ,'fill':'darkgrey'
-                    });
-  return t;
+  return elementNS(svgNS,'rect'
+                  ,{'class':'transition'
+                   ,'id':id
+                   ,'x':x - w/2
+                   ,'y':y - h/2
+                   ,'width':w
+                   ,'height':h
+                   ,'stroke':'black'
+                   ,'stroke-width':'1px'
+                   ,'fill':'darkgrey'
+                   });
 }
 
 /**
