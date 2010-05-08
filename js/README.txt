@@ -114,13 +114,13 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
 
 ----------------- TODO (further entries in source files): {{{
       - add generic net traversal, or at least
-         - static output formats (SVG done, VML missing)
+         - static output formats (SVG done, but depends on SVG support)
          - import/export formats (PNML - import and export partially done)
       - add token model and view objects (net markings)
       - add inscriptions (token data, arc inscriptions, place types,
         transition guards, transition code), try to remain inscription
         language-independent
-      - support multipoint arcs
+      - support multipoint arcs (adding/removing points done, moving points todo)
       - have separate svg groups to add nodes/arcs or labels to,
         to ensure that all labels overlap all other objects
 

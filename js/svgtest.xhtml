@@ -41,6 +41,13 @@ function initNet() {
   // net.removePlace(out1);
   // net.removeTransition(t1);
 
+  // wrap(net,'addArc',{before:function(s,t,m){
+  //   message('addArc: '+s+'>'+t+' : '+m.map(function(p){return p.x+'/'+p.y;}).join(','));
+  //   }});
+  // wrap(Node.prototype,'cancelListeners',{before:function(){message('cancelListeners: '+this);}});
+  // wrap(Node.prototype,'mousedownHandler',{before:function(e){message('mousedownHandler: '+this);}});
+  // wrap(Node.prototype,'mouseupHandler',{before:function(e){message('mouseupHandler: '+this);}});
+
   document.body.insertBefore(net.svgDiv,document.body.firstChild);
 
   net.addImportExportControls();

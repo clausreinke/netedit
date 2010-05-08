@@ -124,12 +124,22 @@ Node.prototype.newArcHandler = function(event) {
 Node.prototype.mouseupHandler = function(event) {
   if ((this.net.cursor.mode==='a')
     &&(this.net.selection instanceof Arc)) {
-    this.net.contents.removeChild(this.net.selection.a); 
-    if (!(this.net.selection.source instanceof this.constructor)) 
-      this.net.addArc(this.net.selection.source,this);
+    if (!(this.net.selection.source instanceof this.constructor)) {
+      var partialArc = this.net.selection;
+      this.net.contents.removeChild(partialArc.a); 
+      var arc = this.net.addArc(partialArc.source,this,partialArc.midpoints);
+      partialArc.source.cancelListeners();
+      this.net.selection = null;
+    } else {
+      var p = this.net.client2canvas(event);
+      var pos = new Pos(p.x,p.y);
+      this.net.selection.insertPoint(pos);
+      this.net.selection.updateView();
+    }
+  } else {
+    this.cancelListeners();
+    this.net.selection = null;
   }
-  this.net.selection = null;
-  this.cancelListeners();
   return true;
 }
 
@@ -428,15 +438,17 @@ Transition.prototype.mouseupHandler = function(event) {
 // ----------------------------- Arc {{{
 
 /**
- * an Arc connects a source and a target node (of differing types); it has a
- * view (visible representation) in the nodes' host net
+ * an Arc connects a source and a target node (of differing types), optionally
+ * routed via midpoints; it has a view (visible representation) in the nodes'
+ * host net
  * 
  * @param source
  * @param target
  */
-function Arc(source,target) {
+function Arc(source,target,midpoints) {
   this.source = source;
   this.target = target;
+  this.midpoints = midpoints ? midpoints : [];
 
   this.addView();
   this.updateView();
@@ -452,8 +464,9 @@ Arc.prototype.toString = function() {
  */
 Arc.prototype.addView = function() {
   this.a = elementNS(svgNS,'path'
-                    ,{'style':'stroke: black; stroke-width: 1px'
+                    ,{'style':'stroke: black; stroke-width: 1px; fill: none'
                      ,'class':'arc'
+                     ,'marker-mid':'url(#Join)'
                      ,'marker-end':'url(#Arrow)'
                      });
   this.a.addEventListener('click',bind(this.clickHandler,this),false);
@@ -463,21 +476,109 @@ Arc.prototype.addView = function() {
  * update graphical representation following model changes 
  */
 Arc.prototype.updateView = function() {
-  var sourceCon = this.source.connectorFor(this.target.pos);
-  var targetCon = this.target.connectorFor(this.source.pos);
+  if (this.midpoints.length===0) {
+    this.sourceCon = this.source.connectorFor(this.target.pos);
+    this.targetCon = this.target.connectorFor(this.source.pos);
+  } else {
+    // TODO: use representation with proper first and last element
+    for (var first=0;
+         first<this.midpoints.length && this.midpoints[first]==null;
+         first++);
+    this.sourceCon = this.source.connectorFor(this.midpoints[first]);
+    for (var last=this.midpoints.length-1;
+         last>=0 && this.midpoints[last]==null;
+         last--);
+    this.targetCon = this.target.connectorFor(this.midpoints[last]);
+  }
 
-  this.a.setAttributeNS(null,'d','M '+sourceCon.x+' '+sourceCon.y
-                                +'L '+targetCon.x+' '+targetCon.y);
+  var segments = '';
+  for (var i in this.midpoints) {
+    var pos = this.midpoints[i];
+    segments += 'L '+pos.x+' '+pos.y+' '
+  }
+
+  this.a.setAttributeNS(null,'d','M '+this.sourceCon.x+' '+this.sourceCon.y+' '
+                                +segments
+                                +'L '+this.targetCon.x+' '+this.targetCon.y);
 }
 
 /**
- * event handler: in deletion mode, remove Arc from host net
+ * insert new midpoint (keeping midpoints ordered by distance from source)
+ * 
+ * @param pos
+ */
+// note: we need the distance along the path, not the euclidic distance!
+//       for crossed paths, simply take the first intersection..
+//       if we want to support curved paths, this will get more difficult
+Arc.prototype.insertPoint = function(pos) {
+  var start = this.sourceCon;
+  var nexts = this.midpoints.concat([this.targetCon]);
+  for (var i in nexts) {
+    var vpos  = start.vectorTo(pos);
+    var vnext = start.vectorTo(nexts[i]);
+    var lpos  = vpos.length();
+    var lnext = vnext.length();
+    if (lpos===0) {
+      message('midpoint already exists');
+      break;
+    }
+    if (vpos.scale(lnext/lpos).close(vnext)) {
+      // new midpoint on path segment following start, insert pos here
+      this.midpoints.splice(i,0,pos);
+      break;
+    }
+    start = this.midpoints[i];
+  }
+}
+
+/**
+ * try to find a midpoint close to the given pos
+ * 
+ * @param pos
+ * @return index of midpoint, if found, -1 otherwise
+ */
+Arc.prototype.findPointIndex = function(pos) {
+  var index = -1;
+  for (var i in this.midpoints) {
+    var pi = this.midpoints[i];
+    if (pi.vectorTo(pos).length()<3) {
+      index = i;
+      break;
+      this.updateView();
+    }
+  }
+  return index;
+}
+
+/**
+ * event handler: in deletion mode, remove nearest mid-point or full Arc
+ *                  (if no mid-point is near) from host net;
+ *                otherwise, add mid-point to Arc
  * 
  * @param event
  */
 Arc.prototype.clickHandler = function(event) {
   // message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
-  if (this.source.net.cursor.mode==='d') this.source.net.removeArc(this);
+  var p = this.source.net.client2canvas(event);
+  var pos = new Pos(p.x,p.y);
+  if (this.source.net.cursor.mode==='d') {
+    var i = this.findPointIndex(pos);
+    if (i>=0)
+      this.midpoints.splice(i,1); // remove i-th midpoint
+    else
+      this.source.net.removeArc(this);
+    this.updateView();
+  } else if (this.source.net.cursor.mode==='m') {
+    var i = this.findPointIndex(pos);
+    if (i>=0)
+      ;// TODO: allow moving midpoint pi here
+    else
+      this.insertPoint(pos); // if no nearby point found, add one
+    this.updateView();
+  } else {
+    this.insertPoint(pos);
+    this.updateView();
+  }
   return true;
 }
 

@@ -316,9 +316,13 @@ Net.prototype.addImportExportControls = function () { // {{{
       location = 'data:application/octet-stream,'+encodeURIComponent(pnml);
     },false);
 
+  // TODO: if we want to use this, eg, for cursor coordinates, we need
+  //       better layout control
+  var messageField = element('div',{"id":'messageField'});
+
   var importExportGroup = element('div'
                                  ,{"id":'importExportGroup'}
-                                 ,[importForm,exportSVG,exportPNML]);
+                                 ,[importForm,exportSVG,exportPNML,messageField]);
   this.svgDiv.insertBefore(importExportGroup,this.svg);
 } // }}}
 

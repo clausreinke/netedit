@@ -22,6 +22,9 @@ Pos.prototype.vectorTo = function(pos) {
 Pos.prototype.add = function(vec) {
   return new Pos(vec.x+this.x,vec.y+this.y);
 }
+Pos.prototype.close = function(pos) {
+  return (Math.abs(pos.x-this.x)<1) && (Math.abs(pos.y-this.y)<1);
+}
 
 /**
  * 2d vectors, just the operations used in net editor
@@ -44,5 +47,11 @@ Vector.prototype.scale = function(s) {
 }
 Vector.prototype.add = function(vec) {
   return new Vector(vec.x+this.x,vec.y+this.y);
+}
+Vector.prototype.dot = function(vec) {
+  return vec.x*this.x+vec.y*this.y;
+}
+Vector.prototype.close = function(vec) {
+  return (Math.abs(vec.x-this.x)<1) && (Math.abs(vec.y-this.y)<1);
 }
 

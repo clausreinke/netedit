@@ -166,7 +166,11 @@ function Net(id,width,height) {
   this.clicks = 0;
   this.svg.addEventListener('click',bind(this.clickHandler,this),false);
   this.svg.addEventListener('mousemove',bind(this.mousemoveHandler,this),false);
+
   // can't listen for keypress on svg only?
+  // opera 10.51: ok; firefox 3.6.2: no
+  // this.svg.addEventListener('keypress',function(e){ message('keypress'); },false);
+  // this.svg.addEventListener('keydown',function(e){ message('keydown'); },false);
   document.documentElement.addEventListener('keypress'
                                            ,bind(this.keypressHandler,this)
                                            ,false);
@@ -291,7 +295,7 @@ Net.prototype.toggleHelp = function() {
  * SVG definitions (currently just an arrowhead marker for arcs)
  */
 Net.prototype.addDefs = function () {
-  var marker = elementNS(svgNS,'marker'
+  var arrow = elementNS(svgNS,'marker'
                         ,{'id':'Arrow'
                          ,'viewBox':'0 0 10 10'
                          ,'refX':'10'
@@ -303,8 +307,20 @@ Net.prototype.addDefs = function () {
                          }
                         ,[elementNS(svgNS,'path'
                                    ,{'d':'M 0 0 L 10 5 L 0 10 z'})]);
+  var join = elementNS(svgNS,'marker'
+                        ,{'id':'Join'
+                         ,'viewBox':'0 0 3 3'
+                         ,'refX':'1.5'
+                         ,'refY':'1.5'
+                         ,'markerUnits':'userSpaceOnUse'
+                         ,'markerWidth':'3'
+                         ,'markerHeight':'3'
+                         ,'orient':'auto'
+                         }
+                        ,[elementNS(svgNS,'circle'
+                                   ,{'r':'1.5','cx':'1.5','cy':'1.5'})]);
 
-  var defs   = elementNS(svgNS,'defs',{},[marker]);
+  var defs   = elementNS(svgNS,'defs',{},[arrow,join]);
   this.svg.appendChild(defs);
 }
 
@@ -338,22 +354,24 @@ Net.prototype.clickHandler = function (event) {
     var defaultName = 't'+this.clicks++;
     var name = prompt('name of new transition: ',defaultName);
     if (name!=null) this.addTransition(name,p.x,p.y)
-  }
+  } else
+    ; // message('net.click: '+p.x+'/'+p.y);
   return true;
 }
 
 /**
- * create and add an Arc from source to target, register Arc with Net, source,
- * and target nodes;
+ * create and add an Arc from source to target, with optional midpoints;
+ * register Arc with Net, source, and target nodes;
  * 
  * @param source
  * @param target
+ * @param midpoints
  */
-Net.prototype.addArc = function (source,target) {
+Net.prototype.addArc = function (source,target,midpoints) {
   if ((source instanceof Transition && target instanceof Place)
     ||(source instanceof Place && target instanceof Transition)) {
 
-    var arc = new Arc(source,target);
+    var arc = new Arc(source,target,midpoints);
     this.arcs.push(arc);
     source.registerArcAtSource(arc);
     target.registerArcAtTarget(arc);
@@ -505,6 +523,7 @@ Net.prototype.keypressHandler = function (event) {
 Net.prototype.mousemoveHandler = function (event) {
   var p = this.client2canvas(event);
   // message('Net.mousemoveHandler '+p.x+'/'+p.y);
+  // document.getElementById('messageField').innerHTML=p.x+'/'+p.y;
   this.cursor.updatePos(p);
   return true;
 }
