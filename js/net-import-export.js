@@ -35,9 +35,14 @@ Net.prototype.toPNML = function() { // {{{
                                     ,{'id':id}
                                     ,[name(n),graphics([position(x,y)])]);
                    }
-  var arc        = function(id,source,target) {
+  var arc        = function(id,source,target,positions) {
                      return elementNS(null,'arc'
-                                    ,{'id':id,'source':source,'target':target});
+                                     ,{'id':id,'source':source,'target':target}
+                                     ,(positions && positions.length>0)
+                                      ? [graphics(positions.map(function(p){
+                                                    return position(p.x,p.y);
+                                                  }))]
+                                      : [] );
                    }
   var net        = function(type,id,children) {
                      return elementNS(null,'net'
@@ -59,7 +64,7 @@ Net.prototype.toPNML = function() { // {{{
   var as = [];
     for(var ai in this.arcs) {
       var a=this.arcs[ai];
-      as.push(arc('arc'+ai,a.source.id,a.target.id));
+      as.push(arc('arc'+ai,a.source.id,a.target.id,a.midpoints));
     };
   var n = net("http://www.pnml.org/version-2009/grammar/ptnet",'net'
              ,[name('example')
@@ -114,12 +119,17 @@ Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
       var id    = place.getAttributeNS(null,'id');
       var name  = place.querySelector('name>text');
       var pos   = place.querySelector('graphics>position');
-      var x     = pos.attributes['x'].nodeValue;
-      var y     = pos.attributes['y'].nodeValue;
-      px = Math.min(px,x); dx = Math.max(dx,x);
-      py = Math.min(py,y); dy = Math.max(dy,y);
-      // message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
-      this.addPlace(id,x*scale,y*scale,unit,name?name.textContent:null);
+      if (pos) {
+        var x     = pos.attributes['x'].nodeValue;
+        var y     = pos.attributes['y'].nodeValue;
+        px = Math.min(px,x); dx = Math.max(dx,x);
+        py = Math.min(py,y); dy = Math.max(dy,y);
+        // message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
+        this.addPlace(id,x*scale,y*scale,unit,name?name.textContent:null);
+      } else {
+        message('sorry, no automatic layout - all nodes should have positions');
+        messagePre(listXML('',place).join("\n"));
+      }
     }
 
     var transitions = pnml.querySelectorAll('transition');
@@ -128,12 +138,17 @@ Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
       var id    = transition.getAttributeNS(null,'id');
       var name  = transition.querySelector('name>text');
       var pos   = transition.querySelector('graphics>position');
-      var x     = pos.attributes['x'].nodeValue;
-      var y     = pos.attributes['y'].nodeValue;
-      px = Math.min(px,x); dx = Math.max(dx,x);
-      py = Math.min(py,y); dy = Math.max(dy,y);
-      // message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
-      this.addTransition(id,x*scale,y*scale,2*unit,2*unit,name?name.textContent:null);
+      if (pos) {
+        var x     = pos.attributes['x'].nodeValue;
+        var y     = pos.attributes['y'].nodeValue;
+        px = Math.min(px,x); dx = Math.max(dx,x);
+        py = Math.min(py,y); dy = Math.max(dy,y);
+        // message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
+        this.addTransition(id,x*scale,y*scale,2*unit,2*unit,name?name.textContent:null);
+      } else {
+        message('sorry, no automatic layout - all nodes should have positions');
+        messagePre(listXML('',transition).join("\n"));
+      }
     }
 
     var arcs = pnml.querySelectorAll('arc');
@@ -143,10 +158,21 @@ Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
       var sourceId = arc.getAttributeNS(null,'source');
       var targetId = arc.getAttributeNS(null,'target');
       // message(id+': '+sourceId+' -> '+targetId);
+      var positions = arc.querySelectorAll('graphics>position');
+      if (positions.length>0) {
+        var midpoints = [];
+        for (var j=0; j<positions.length; j++) {
+          var pos = positions[j];
+          var x   = pos.attributes['x'].nodeValue;
+          var y   = pos.attributes['y'].nodeValue;
+          midpoints.push(new Pos(x,y));
+        }
+      } else
+        var midpoints = null;
       if (this.transitions[sourceId] && this.places[targetId])
-        this.addArc(this.transitions[sourceId],this.places[targetId]);
+        this.addArc(this.transitions[sourceId],this.places[targetId],midpoints);
       else if (this.places[sourceId] && this.transitions[targetId])
-        this.addArc(this.places[sourceId],this.transitions[targetId]);
+        this.addArc(this.places[sourceId],this.transitions[targetId],midpoints);
       else
         message('cannot find source and target');
     }
@@ -156,6 +182,8 @@ Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
                     // (apparently, that issue is opera-specific, works in firefox?)
                     // so we use the min/max node coordinates as an approximation
                     // [PNML files should specify intended dimensions to avoid this]
+                    // TODO: if there were no useable nodes (no positions specified),
+                    //       there is no useable bounding box either..
       var bbox = this.contents.getBBox(); // TODO: why isn't this tight in opera 10.10?
       message('** (min/max) '+px+' '+py+' '+dx+' '+dy);
       listProperties('contents.BBox',bbox);

@@ -480,7 +480,8 @@ Arc.prototype.updateView = function() {
     this.sourceCon = this.source.connectorFor(this.target.pos);
     this.targetCon = this.target.connectorFor(this.source.pos);
   } else {
-    // TODO: use representation with proper first and last element
+    // TODO: since we've switched from delete to splice for removing
+    //        midpoints, this can be simplified again
     for (var first=0;
          first<this.midpoints.length && this.midpoints[first]==null;
          first++);
@@ -522,7 +523,7 @@ Arc.prototype.insertPoint = function(pos) {
       message('midpoint already exists');
       break;
     }
-    if (vpos.scale(lnext/lpos).close(vnext)) {
+    if ((lpos<=lnext) && vpos.scale(lnext/lpos).close(vnext)) {
       // new midpoint on path segment following start, insert pos here
       this.midpoints.splice(i,0,pos);
       break;

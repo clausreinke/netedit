@@ -120,7 +120,7 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
       - add inscriptions (token data, arc inscriptions, place types,
         transition guards, transition code), try to remain inscription
         language-independent
-      - support multipoint arcs (adding/removing points done, moving points todo)
+      - support multipoint arcs (adding/removing/saving/loading points done, moving points todo)
       - have separate svg groups to add nodes/arcs or labels to,
         to ensure that all labels overlap all other objects
 
