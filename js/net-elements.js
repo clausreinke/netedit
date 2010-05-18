@@ -457,19 +457,24 @@ Arc.prototype.toString = function() {
   return this.source+'->'+this.target;
 }
 
-// TODO: we might need to add a transparent halo, to make arcs easier to select
+// TODO: - we might need to add a transparent halo, to make arcs easier to
+//         select
+//       - also, it is helpful to define .arc:hover {stroke:blue}, which is
+//         currently done in svgtest.xhtml; move that from xhtml to js
 /**
  * an Arc is visually represented by graphical view (an SVG path); it reacts to
  * click events
  */
 Arc.prototype.addView = function() {
   this.a = elementNS(svgNS,'path'
-                    ,{'style':'stroke: black; stroke-width: 1px; fill: none'
+                    ,{'style':'stroke-width: 1px; fill: none'
+                     ,'stroke':'black'
                      ,'class':'arc'
                      ,'marker-mid':'url(#Join)'
                      ,'marker-end':'url(#Arrow)'
                      });
   this.a.addEventListener('click',bind(this.clickHandler,this),false);
+  this.a.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
 }
 
 /**
@@ -569,18 +574,69 @@ Arc.prototype.clickHandler = function(event) {
     else
       this.source.net.removeArc(this);
     this.updateView();
-  } else if (this.source.net.cursor.mode==='m') {
-    var i = this.findPointIndex(pos);
-    if (i>=0)
-      ;// TODO: allow moving midpoint pi here
-    else
-      this.insertPoint(pos); // if no nearby point found, add one
-    this.updateView();
-  } else {
+  } else if (this.source.net.cursor.mode!=='m') {
     this.insertPoint(pos);
     this.updateView();
   }
   return true;
+}
+
+/**
+ * event handler: in move mode, move nearest midpoint
+ * 
+ * @param event
+ */
+Arc.prototype.mousedownHandler = function(event) {
+  var p = this.source.net.client2canvas(event);
+  var pos = new Pos(p.x,p.y);
+  if (this.source.net.cursor.mode==='m') {
+    message('mousedown');
+    var i = this.findPointIndex(pos);
+    if (i>=0) {
+      message(i);
+      this.a.setAttributeNS(null,'stroke','green'); 
+      // TODO: allow moving midpoint pi here
+      this.source.net.selection = this;
+      this.movedPoint    = this.midpoints[i];
+      // need to keep references to dynamically constructed listeners,
+      // or removeEventListener wouldn't work
+      this.listeners = { 'mousemove' : bind(this.mousemoveHandler,this)
+                       , 'mouseup'   : bind(this.mouseupHandler,this)
+                       }
+      // redirect whole-svg events 
+      // if mouse is faster than rendering, events might otherwise miss small shapes
+      for (var l in this.listeners) 
+        this.source.net.svg.addEventListener(l,this.listeners[l],false);
+    }
+  }
+  return true;
+}
+
+/**
+ * event handler: update view of arc while midpoint is moved
+ *  
+ * @param event
+ */
+Arc.prototype.mousemoveHandler = function(event) {
+  var p = this.source.net.client2canvas(event);
+  this.movedPoint.x = p.x; 
+  this.movedPoint.y = p.y; 
+  this.updateView();
+  return true;
+}
+
+/**
+ * event handler: end midpoint move
+ * 
+ * @param event
+ */
+Arc.prototype.mouseupHandler = function(event) {
+  this.a.setAttributeNS(null,'stroke','black'); 
+  for (var l in this.listeners) 
+    this.source.net.svg.removeEventListener(l,this.listeners[l],false);
+  this.listeners = {};
+  this.source.net.selection = null;
+  this.movedPoint = null;
 }
 
 // ----------------------------- }}}

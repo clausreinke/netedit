@@ -2,11 +2,11 @@
 ----------------- a simple Petri net editor (Browser Javascript plus SVG)
 
 Version          : 0.1-alpha (<insert release date>)
-Project home page: <tbd (googlecode?)>
+Project home page: <tbd (googlecode? what about licensing?)>
 Author           : Claus Reinke <claus.reinke@talk21.com>
 
-last update      : 25/04/2010
-tested with      : Opera 10.51, Firefox 3.6.2
+last update      : 18/05/2010
+tested with      : Opera 10.53, Firefox 3.6.2
 
 PLEASE NOTE: this code has not yet been released - please do not distribute!
 
@@ -101,10 +101,10 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
    Transition(net,id,pos)
 
   Arc(source,target)
-   connects a source and a target node, has view object, can update its
-   view after changes, can be deleted; this is an auxiliary object that
-   mostly just follows whatever happens to the source and target nodes it is
-   registered with
+   connects a source and a target node via optional midpoints, has view object,
+   can update its view after changes, can be deleted; this is an auxiliary
+   object that mostly just follows whatever happens to the source and target
+   nodes it is registered with
 
   Cursor(net)
    tracks Net it belongs to, mode of Net-global cursor operation (insert
@@ -114,13 +114,16 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
 
 ----------------- TODO (further entries in source files): {{{
       - add generic net traversal, or at least
-         - static output formats (SVG done, but depends on SVG support)
+         - static output formats (SVG done, but depends on SVG support;
+            do we need javascript to work around non-SVG browsers? if so,
+            we might as well output raphael instead and be done with it
+            (might need to add marker support, though);
+            should we try and figure out png support as a final fallback?)
          - import/export formats (PNML - import and export partially done)
       - add token model and view objects (net markings)
       - add inscriptions (token data, arc inscriptions, place types,
         transition guards, transition code), try to remain inscription
         language-independent
-      - support multipoint arcs (adding/removing/saving/loading points done, moving points todo)
       - have separate svg groups to add nodes/arcs or labels to,
         to ensure that all labels overlap all other objects
 
@@ -141,7 +144,8 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
       - support node resize (if we want asymmetric transitions, also rotation?)
       - allow default styling to be overridden via css (two issues:
          1. don't specify local style if applicable style exists
-         2. we currently avoid css-style in favour of svg attributes)
+         2. we currently avoid css-style in favour of svg attributes;
+         actually, 2 might be the solution instead of a problem?)
         can all configuration be handled via css or do we need additional
         attributes?
       - allow editing of element attributes (like label positioning, ..);
