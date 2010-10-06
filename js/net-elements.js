@@ -241,11 +241,11 @@ Place.prototype.placeShape = function (id,x,y,r) {
  */
 Place.prototype.updateView = function() {
   this.p.id = this.id; // TODO: filter/translate to get valid/unique ids only!
-  this.p.setAttributeNS(null,'cx',this.pos.x); 
-  this.p.setAttributeNS(null,'cy',this.pos.y); 
-  this.p.setAttributeNS(null,'r',this.r);
-  this.l.setAttributeNS(null,'x',this.pos.x+this.r);
-  this.l.setAttributeNS(null,'y',this.pos.y+this.r);
+  setAttributesNS(this.p,{'cx': this.pos.x
+                         ,'cy': this.pos.y
+                         ,'r' : this.r});
+  setAttributesNS(this.l,{'x': this.pos.x+this.r
+                         ,'y': this.pos.y+this.r});
 }
 
 /**
@@ -371,12 +371,12 @@ Transition.prototype.updateView = function() {
   var x2 = this.pos.x - this.width/2;
   var y2 = this.pos.y - this.height/2;
   this.t.id = this.id; // TODO: filter/translate to get valid/unique ids only!
-  this.t.setAttributeNS(null,'x',x2); 
-  this.t.setAttributeNS(null,'y',y2); 
-  this.t.setAttributeNS(null,'width',this.width);
-  this.t.setAttributeNS(null,'height',this.height);
-  this.l.setAttributeNS(null,'x',this.pos.x+0.6*this.width);
-  this.l.setAttributeNS(null,'y',this.pos.y+0.5*this.height);
+  setAttributesNS(this.t,{'x'     : x2
+                         ,'y'     : y2
+                         ,'width' : this.width
+                         ,'height': this.height});
+  setAttributesNS(this.l,{'x': this.pos.x+0.6*this.width
+                         ,'y': this.pos.y+0.5*this.height});
 }
 
 // TODO: spread out connectors on the sides (need to find a scale

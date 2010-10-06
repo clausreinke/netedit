@@ -73,7 +73,7 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
   bounds.
 
   Talking about standards, we only support/use a subset of PNML so far (net,
-  transition, place, transition/place names with default offsets, arcs without
+  transition, place, transition/place names with default offsets, arcs with
   intermediate support points, net dimensions, node positions).
 
 ----------------- Implementation notes:
@@ -141,7 +141,7 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
 
       - generalize view handling (generic view objects instead of
          Place/Transition/Arc-specific .p/.t/.a and .l)
-      - support node resize (if we want asymmetric transitions, also rotation?)
+      - support node resize (if we want asymmetric nodes, also rotation?)
       - allow default styling to be overridden via css (two issues:
          1. don't specify local style if applicable style exists
          2. we currently avoid css-style in favour of svg attributes;
@@ -175,7 +175,8 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
           - multiple element selections
           - move/copy/align/delete groups of elements
           - alignment help during element move
-          - add new alternating nodes when arc targets are on empty ground
+          - add new alternating nodes when arc targets are on empty ground,
+            so that we can quickly lay down base lines
           ..
         also, graph traversals and group operations could help with
         repetitive tasks, such as 

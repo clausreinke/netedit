@@ -228,8 +228,8 @@ Net.prototype.transitionHeight      = 2*Net.prototype.r;
 Net.prototype.setViewSize = function (x,y,w,h) {
   this.width  = w;
   this.height = h;
-  this.svg.setAttributeNS(null,'viewBox',x+' '+y+' '+w+' '+h);
-  this.svg.setAttributeNS(null,'clip',y+' '+w+' '+h+' '+x); // TODO: is this right?
+  setAttributesNS(this.svg,{'viewBox': x+' '+y+' '+w+' '+h
+                           ,'clip': y+' '+w+' '+h+' '+x}); // TODO: is this right?
   this.updateBackdrop();
 }
 
@@ -247,15 +247,18 @@ Net.prototype.addBackdrop = function () {
 
 Net.prototype.updateBackdrop = function () {
   var boundingRect = this.svgDiv;
-  this.svgBackdrop.setAttributeNS(null,'x',boundingRect.clientLeft);
-  this.svgBackdrop.setAttributeNS(null,'y',boundingRect.clientTop);
-  this.svgBackdrop.setAttributeNS(null,'width',boundingRect.clientWidth); 
-  this.svgBackdrop.setAttributeNS(null,'height',boundingRect.clientHeight);
+  setAttributesNS(this.svgBackdrop,{'x': boundingRect.clientLeft
+                                   ,'y': boundingRect.clientTop
+                                   ,'width': boundingRect.clientWidth
+                                   ,'height': boundingRect.clientHeight});
 }
 
 /**
  * add help text (visibility can be toggled by pressing '?')
  */
+// TODO: - alternative key bindings: t/p modelessly create nodes, a
+//          starts/splits/ends arcs
+// note: future versions will use keybindings differently
 Net.prototype.addHelp = function () {
   this.help = elementNS(svgNS,'text'
                        ,{'id':'netHelp'

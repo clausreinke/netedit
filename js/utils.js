@@ -44,9 +44,19 @@ function element(tag,attributes,children) {
  */
 function elementNS(ns,tag,attributes,children) {
    var e = document.createElementNS(ns,tag);
-   for (var a in attributes) e.setAttributeNS(null,a,attributes[a]);
+   setAttributesNS(e,attributes);
    for (var c in children) e.appendChild(children[c]);
    return e;
+}
+
+/**
+ * shorthand for setting namespaced element attributes
+ * 
+ * @param e
+ * @param attributes
+ */
+function setAttributesNS(e,attributes) {
+   for (var a in attributes) e.setAttributeNS(null,a,attributes[a]);
 }
 
 // opera does sequences of style.property=blah setters just fine;
