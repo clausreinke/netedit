@@ -243,9 +243,12 @@ Net.prototype.addImportExportControls = function () { // {{{
       // TODO: clean up!
       var pnml = null;
       message('importing PNML file '+importSelector.value);
-      if (importSelector.files) { // use File API, if present
+      if (importSelector.files
+         && !navigator.appVersion.match(/Safari/)) { // use File API, if present
         message('File API available');
         if (importSelector.files.item(0)) {
+          // TODO: safari 5.0 can't do anything with the file here?
+          //       workaround: use XHR route for now
           var contents = importSelector.files.item(0).getAsText(null);
           messagePre(contents);
           if (DOMParser) {
@@ -299,6 +302,7 @@ Net.prototype.addImportExportControls = function () { // {{{
   //       - unlike opera, firefox doesn't seem to give us control of where to
   //         save, and under what name (everything goes in the download folder,
   //         with automatically generated names)
+  //       - apart from different attribute order, safari 5.0 seems to be missing join marker?
   var exportSVG = element('input'
                          ,{"type" : 'button'
                           ,"id"   : 'exportSVG'

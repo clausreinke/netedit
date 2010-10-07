@@ -5,8 +5,8 @@ Version          : 0.1-alpha (<insert release date>)
 Project home page: <tbd (googlecode? what about licensing?)>
 Author           : Claus Reinke <claus.reinke@talk21.com>
 
-last update      : 18/05/2010
-tested with      : Opera 10.53, Firefox 3.6.2
+last update      : 07.10.2010
+tested with      : Opera 10.53, Firefox 3.6.10, (Safari 5.0 in progress)
 
 PLEASE NOTE: this code has not yet been released - please do not distribute!
 
@@ -70,7 +70,7 @@ PLEASE NOTE: this code has not yet been released - please do not distribute!
   Note, however, that the use of standard, but fairly recent APIs requires
   equally recent browser versions (or framework middleware to make up for the
   difference). For now, we stick with Opera 10.10 and Firefox 3.62 as lower
-  bounds.
+  bounds (Safari 5.0 partially working).
 
   Talking about standards, we only support/use a subset of PNML so far (net,
   transition, place, transition/place names with default offsets, arcs with
