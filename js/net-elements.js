@@ -85,7 +85,9 @@ Node.prototype.mousedownHandler = function(event) {
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might otherwise miss small shapes
   for (var l in this.listeners) 
-    this.net.svg.addEventListener(l,this.listeners[l],false);
+    // safari 5.0 won't listen to events on svg
+    // this.net.svg.addEventListener(l,this.listeners[l],false);
+    this.net.svgDiv.addEventListener(l,this.listeners[l],false);
   return true;
 }
 
@@ -148,7 +150,9 @@ Node.prototype.mouseupHandler = function(event) {
  */
 Node.prototype.cancelListeners = function() {
   for (var l in this.listeners) 
-    this.net.svg.removeEventListener(l,this.listeners[l],false);
+    // safari 5.0 won't listen to events on svg
+    // this.net.svg.removeEventListener(l,this.listeners[l],false);
+    this.net.svgDiv.removeEventListener(l,this.listeners[l],false);
   this.listeners = {};
 }
 
@@ -606,7 +610,9 @@ Arc.prototype.mousedownHandler = function(event) {
       // redirect whole-svg events 
       // if mouse is faster than rendering, events might otherwise miss small shapes
       for (var l in this.listeners) 
-        this.source.net.svg.addEventListener(l,this.listeners[l],false);
+        // safari 5.0 won't listen to events on svg
+        // this.source.net.svg.addEventListener(l,this.listeners[l],false);
+        this.source.net.svgDiv.addEventListener(l,this.listeners[l],false);
     }
   }
   return true;
@@ -633,7 +639,9 @@ Arc.prototype.mousemoveHandler = function(event) {
 Arc.prototype.mouseupHandler = function(event) {
   this.a.setAttributeNS(null,'stroke','black'); 
   for (var l in this.listeners) 
-    this.source.net.svg.removeEventListener(l,this.listeners[l],false);
+    // safari 5.0 won't listen to events on svg
+    // this.source.net.svg.removeEventListener(l,this.listeners[l],false);
+    this.source.net.svgDiv.removeEventListener(l,this.listeners[l],false);
   this.listeners = {};
   this.source.net.selection = null;
   this.movedPoint = null;

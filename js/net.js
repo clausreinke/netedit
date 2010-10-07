@@ -164,8 +164,13 @@ function Net(id,width,height) {
 
   this.svg.net = this;
   this.clicks = 0;
-  this.svg.addEventListener('click',bind(this.clickHandler,this),false);
-  this.svg.addEventListener('mousemove',bind(this.mousemoveHandler,this),false);
+
+  // some browsers won't call these svg event listeners
+  // opera 10.51: ok; firefox 3.6.10: ok; safari 5.0: no
+  // this.svg.addEventListener('click',bind(this.clickHandler,this),false);
+  // this.svg.addEventListener('mousemove',bind(this.mousemoveHandler,this),false);
+  this.svgDiv.addEventListener('click',bind(this.clickHandler,this),false);
+  this.svgDiv.addEventListener('mousemove',bind(this.mousemoveHandler,this),false);
 
   // can't listen for keypress on svg only?
   // opera 10.51: ok; firefox 3.6.2: no
@@ -239,7 +244,7 @@ Net.prototype.setViewSize = function (x,y,w,h) {
 Net.prototype.addBackdrop = function () {
   this.svgBackdrop = elementNS(svgNS,'rect'
                               ,{'id':'svgBackdrop'
-                               ,'style':'fill: lightgrey'
+                               ,'fill':'lightgrey'
                                });
   this.updateBackdrop();
   this.svg.appendChild(this.svgBackdrop);
@@ -494,6 +499,7 @@ Net.prototype.keypressHandler = function (event) {
 
   // '\esc' should cancel anything in progress, leaving neutral state,
   // other keys should first enter neutral state, then set new cursor mode
+  // TODO: safari 5.0 doesn't listen to \esc; workaround: use other unused key for now
   if (this.selection) {
     if (this.selection instanceof Arc) {
       message('cancelling Arc construction in progress');
