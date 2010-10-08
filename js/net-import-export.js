@@ -1,6 +1,10 @@
 //
 // Net import/export (load on top of net.js)
 //
+// dependency: utils.js
+// dependency: vector.js
+// dependency: debug.js
+// dependency: net.js
 
 // TODO: we have extra lines accumulating around text node contents
 //       during import/export loops (as well as extra whitespace around

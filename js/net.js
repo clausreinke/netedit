@@ -3,6 +3,10 @@
 // object (holds Cursor mode and its visual representation)
 //
 
+// dependency: vector.js
+// dependency: net-elements.js
+// dependency: utils.js
+
 var svgNS = 'http://www.w3.org/2000/svg';
 
 // ----------------------------- Cursor {{{

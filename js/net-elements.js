@@ -1,6 +1,7 @@
 // 
 // Net elements: Nodes (Places, Transitions) and Arcs (load before net.js)
 //
+// dependency: vector.js
 
 // ----------------------------- Node {{{
 
