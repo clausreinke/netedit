@@ -6,7 +6,7 @@ Project home page: <tbd (googlecode? what about licensing?)>
 Author           : Claus Reinke <claus.reinke@talk21.com>
 
 last update      : 07.10.2010
-tested with      : Opera 10.53, Firefox 3.6.10, (Safari 5.0 in progress)
+tested with      : Opera 10.53, Firefox 3.6.10, Safari 5.0
 
 PLEASE NOTE: this code has not yet been released - please do not distribute!
 

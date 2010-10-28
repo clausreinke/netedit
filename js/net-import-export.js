@@ -250,10 +250,11 @@ Net.prototype.addImportExportControls = function () { // {{{
       if (importSelector.files
          && !navigator.appVersion.match(/Safari/)) { // use File API, if present
         message('File API available');
-        if (importSelector.files.item(0)) {
+        var file = importSelector.files.item(0);
+        if (file) {
           // TODO: safari 5.0 can't do anything with the file here?
           //       workaround: use XHR route for now
-          var contents = importSelector.files.item(0).getAsText(null);
+          var contents = file.getAsText(null);
           messagePre(contents);
           if (DOMParser) {
             var parser = new DOMParser();
