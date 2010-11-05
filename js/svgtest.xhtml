@@ -15,12 +15,36 @@ div#messages { clear: both; margin: 10px; border: solid 1px blue;
                height: 10em; overflow: scroll }
 </style>
 
-<script type="text/javascript" src="debug.js"/>
-<script type="text/javascript" src="utils.js"/>
-<script type="text/javascript" src="vector.js"/>
-<script type="text/javascript" src="net-elements.js"/>
-<script type="text/javascript" src="net.js"/>
-<script type="text/javascript" src="net-import-export.js"/>
+<script type="text/javascript"><![CDATA[
+/**
+ * minimalistic check for unwanted extensions/global variables,
+ * example usage:
+ *
+ * var before = checkpoint(window);
+ * ..do stuff..
+ * window.console.log(checkpoint(window,before));
+ * 
+ * @param obj
+ * @param before
+ */
+function checkpoint(obj,before) {
+  function elements(obj) {
+    var elems = [];
+    for (var x in obj) elems.push(x);
+    return elems;
+  }
+  if (before) {
+    function newElement(x) {
+      return before.indexOf(x)===-1;
+    }
+    return elements(obj).filter(newElement);
+  } else
+    return elements(obj);
+}
+var before = checkpoint(window);
+]]></script>
+
+<script type="text/javascript" src="netedit.js"/>
 
 <script type="text/javascript"><![CDATA[
 function initNet() {
@@ -61,7 +85,7 @@ function initNet() {
 
 </head>
 
-<body onload="initNet(); // JSEval('messages'); ObjectViewer('messages');">
+<body onload="initNet(); window.console.log(checkpoint(window,before)); // JSEval('messages'); ObjectViewer('messages');">
 <div id='messages'/>
 
 <hr/>
