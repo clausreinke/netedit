@@ -45,7 +45,6 @@ function Cursor(net) {
   this.place  = Place.prototype.placeShape('placeCursor',offset,-offset,r);
 }
 
-// TODO: this patching is getting ridiculous
 /**
  * hide all Cursor shapes
  */
