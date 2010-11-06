@@ -6,6 +6,8 @@
 // dependency: debug.js
 // dependency: net.js
 
+module("net-import-export.js",["net.js"],function(net) {
+
 // TODO: we have extra lines accumulating around text node contents
 //       during import/export loops (as well as extra whitespace around
 //       text nodes during Node.rename)
@@ -13,7 +15,7 @@
 /**
  * render Net as PNML document string
  */
-Net.prototype.toPNML = function() { // {{{
+net.Net.prototype.toPNML = function() { // {{{
   // auxiliary definitions for PNML format elements
   var dimension  = function(x,y) { 
                     return elementNS(null,'dimension',{'x':x,'y':y});
@@ -94,7 +96,7 @@ Net.prototype.toPNML = function() { // {{{
  * @param scale
  * @param unit
  */
-Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
+net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
   if (pnml.querySelectorAll) {
     // if the standard specifies any default scale/unit at all, not all PNML
     // files use those
@@ -204,7 +206,7 @@ Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
  * add import PNML, export PNML, export SVG controls to document, just before
  * the Net's SVG node;
  */
-Net.prototype.addImportExportControls = function () { // {{{
+net.Net.prototype.addImportExportControls = function () { // {{{
 
   var net = this; // for use in event handler closures
 
@@ -363,3 +365,6 @@ Net.prototype.addImportExportControls = function () { // {{{
   this.svgDiv.insertBefore(importExportGroup,this.svg);
 } // }}}
 
+return {
+       };
+});

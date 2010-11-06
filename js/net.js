@@ -7,6 +7,8 @@
 // dependency: net-elements.js
 // dependency: utils.js
 
+module("net.js",[],function() {
+
 var svgNS = 'http://www.w3.org/2000/svg';
 
 // ----------------------------- Cursor {{{
@@ -546,3 +548,8 @@ Net.prototype.mousemoveHandler = function (event) {
 
 // ----------------------------- }}}
 
+return { Cursor: Cursor
+       , Net:    Net
+       , svgNS:  svgNS
+       };
+});

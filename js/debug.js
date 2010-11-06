@@ -14,6 +14,8 @@
 // improve my understanding and to gain more flexibility/scriptability
 //
 
+module("debug.js",[],function() {
+
 // logging messages to div element {{{
 /**
  * use document element div (default 'messages') as a simple output console for
@@ -197,3 +199,13 @@ function listXML(prefix,xml) { // {{{
   return text;
 } // }}}
 
+// exports
+return { message:        message
+       , messagePre:     messagePre
+       , wrap:           wrap
+       , listProperties: listProperties
+       , ObjectViewer:   ObjectViewer
+       , JSEval:         JSEval
+       , listXML:        listXML
+       };
+});

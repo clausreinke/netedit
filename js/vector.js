@@ -3,6 +3,8 @@
 // (load before net-elements.js and net.js)
 //
 
+module("vector.js",[],function() {
+
 /**
  * basic 2d positions, with interface to 2d vectors
  * 
@@ -55,3 +57,8 @@ Vector.prototype.close = function(vec) {
   return (Math.abs(vec.x-this.x)<1) && (Math.abs(vec.y-this.y)<1);
 }
 
+// exports
+return { Pos:    Pos
+       , Vector: Vector
+       };
+});

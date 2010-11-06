@@ -85,7 +85,11 @@ function initNet() {
 
 </head>
 
-<body onload="initNet(); window.console.log(checkpoint(window,before)); // JSEval('messages'); ObjectViewer('messages');">
+<body onload="linkModules();
+              initNet();
+              window.console.log(checkpoint(window,before));
+              // JSEval('messages'); ObjectViewer('messages');
+              ">
 <div id='messages'/>
 
 <hr/>

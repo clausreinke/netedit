@@ -3,6 +3,8 @@
 //
 // dependency: vector.js
 
+module("net-elements.js",[],function() {
+
 // ----------------------------- Node {{{
 
 // TODO: how to make constructor "parameters" net,id,name,pos explicit?
@@ -650,3 +652,10 @@ Arc.prototype.mouseupHandler = function(event) {
 
 // ----------------------------- }}}
 
+// exports
+return { Node:       Node
+       , Place:      Place
+       , Transition: Transition
+       , Arc:        Arc
+       };
+});

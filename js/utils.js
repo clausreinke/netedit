@@ -4,6 +4,8 @@
 // TODO: wrap in its own namespace
 // TODO: add updateElement/updateElementNS
 
+module("utils.js",[],function(){
+
 /**
  * bind function 'this'-reference (mostly so that we can register 
  * model object methods as view object event listeners, with
@@ -59,4 +61,10 @@ function setAttributesNS(e,attributes) {
    for (var a in attributes) e.setAttributeNS(null,a,attributes[a]);
 }
 
-
+// exports
+return { bind:            bind
+       , element:         element
+       , elementNS:       elementNS
+       , setAttributesNS: setAttributesNS
+       };
+});
