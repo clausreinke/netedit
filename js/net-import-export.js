@@ -6,7 +6,8 @@
 // dependency: debug.js
 // dependency: net.js
 
-module("net-import-export.js",["net.js"],function(net) {
+module("net-import-export.js",["net.js","utils.js"]
+      ,function(net,utils) {
 
 // TODO: we have extra lines accumulating around text node contents
 //       during import/export loops (as well as extra whitespace around
@@ -18,42 +19,42 @@ module("net-import-export.js",["net.js"],function(net) {
 net.Net.prototype.toPNML = function() { // {{{
   // auxiliary definitions for PNML format elements
   var dimension  = function(x,y) { 
-                    return elementNS(null,'dimension',{'x':x,'y':y});
+                    return utils.elementNS(null,'dimension',{'x':x,'y':y});
                    }
   var position   = function(x,y) {
-                    return elementNS(null,'position',{'x':x,'y':y});
+                    return utils.elementNS(null,'position',{'x':x,'y':y});
                    }
   var graphics   = function(children) {
-                    return elementNS(null,'graphics',{},children);
+                    return utils.elementNS(null,'graphics',{},children);
                    }
   var name       = function(text) {
-                     return elementNS(null,'name',{}
-                                     ,[elementNS(null,'text',{}
-                                                ,[document.createTextNode(text)])]);
+                     return utils.elementNS(null,'name',{}
+                                           ,[utils.elementNS(null,'text',{}
+                                                            ,[document.createTextNode(text)])]);
                    }
   var place      = function(id,n,x,y) {
-                     return elementNS(null,'place'
-                                     ,{'id':id}
-                                     ,[name(n),graphics([position(x,y)])]);
+                     return utils.elementNS(null,'place'
+                                           ,{'id':id}
+                                           ,[name(n),graphics([position(x,y)])]);
                    }
   var transition = function(id,n,x,y) {
-                    return elementNS(null,'transition'
-                                    ,{'id':id}
-                                    ,[name(n),graphics([position(x,y)])]);
+                    return utils.elementNS(null,'transition'
+                                          ,{'id':id}
+                                          ,[name(n),graphics([position(x,y)])]);
                    }
   var arc        = function(id,source,target,positions) {
-                     return elementNS(null,'arc'
-                                     ,{'id':id,'source':source,'target':target}
-                                     ,(positions && positions.length>0)
-                                      ? [graphics(positions.map(function(p){
-                                                    return position(p.x,p.y);
-                                                  }))]
-                                      : [] );
+                     return utils.elementNS(null,'arc'
+                                           ,{'id':id,'source':source,'target':target}
+                                           ,(positions && positions.length>0)
+                                            ? [graphics(positions.map(function(p){
+                                                          return position(p.x,p.y);
+                                                        }))]
+                                            : [] );
                    }
   var net        = function(type,id,children) {
-                     return elementNS(null,'net'
-                                     ,{'type':type,'id':id}
-                                     ,children);
+                     return utils.elementNS(null,'net'
+                                           ,{'type':type,'id':id}
+                                           ,children);
                    }
 
   // start building: places, transitions, arcs, then the full net
@@ -211,21 +212,21 @@ net.Net.prototype.addImportExportControls = function () { // {{{
   var net = this; // for use in event handler closures
 
   // importing PNML files (partially implemented)
-  var importButton   = element('input'
-                              ,{"type" : 'submit'
-                               ,"id"   : 'importButton'
-                               ,"value": 'import PNML'
-                               });
-  var importSelector = element('input'
-                              ,{"type" : 'file'
-                               ,"id"   : 'importSelector'
-                               ,"title": 'select PNML file to import'
-                               ,"style": 'width: auto'
-                               });
-  var importForm     = element('form'
-                              ,{'action':'#'
-                               ,'style' :'display: inline'}
-                              ,[importButton,importSelector]);
+  var importButton   = utils.element('input'
+                                    ,{"type" : 'submit'
+                                     ,"id"   : 'importButton'
+                                     ,"value": 'import PNML'
+                                     });
+  var importSelector = utils.element('input'
+                                    ,{"type" : 'file'
+                                     ,"id"   : 'importSelector'
+                                     ,"title": 'select PNML file to import'
+                                     ,"style": 'width: auto'
+                                     });
+  var importForm     = utils.element('form'
+                                    ,{'action':'#'
+                                     ,'style' :'display: inline'}
+                                    ,[importButton,importSelector]);
   importForm.addEventListener('submit',function(event){
       // grr; while it is easy to import files in the current directory, things
       // get difficult if one likes to organize one's file in a pnml/
@@ -310,12 +311,12 @@ net.Net.prototype.addImportExportControls = function () { // {{{
   //         save, and under what name (everything goes in the download folder,
   //         with automatically generated names)
   //       - apart from different attribute order, safari 5.0 seems to be missing join marker?
-  var exportSVG = element('input'
-                         ,{"type" : 'button'
-                          ,"id"   : 'exportSVG'
-                          ,"value": 'export SVG'
-                          ,"style": 'margin-left: 10px'
-                          });
+  var exportSVG = utils.element('input'
+                               ,{"type" : 'button'
+                                ,"id"   : 'exportSVG'
+                                ,"value": 'export SVG'
+                                ,"style": 'margin-left: 10px'
+                                });
   exportSVG.addEventListener('click',function(){
       // clone svg, then remove interactive elements (not needed for static output)
       // NOTE: cloning in opera 10.10 seems to convert some attribute representations
@@ -341,12 +342,12 @@ net.Net.prototype.addImportExportControls = function () { // {{{
   //       - unlike opera, firefox doesn't seem to give us control of where to
   //         save, and under what name (everything goes in the download folder,
   //         with automatically generated names)
-  var exportPNML = element('input'
-                          ,{"type" : 'button'
-                           ,"id"   : 'exportPNML'
-                           ,"value": 'export PNML'
-                           ,"style": 'margin-left: 10px'
-                           });
+  var exportPNML = utils.element('input'
+                                ,{"type" : 'button'
+                                 ,"id"   : 'exportPNML'
+                                 ,"value": 'export PNML'
+                                 ,"style": 'margin-left: 10px'
+                                 });
   exportPNML.addEventListener('click',function(){
       var pnml = net.toPNML();
       messagePre(pnml);
@@ -357,11 +358,11 @@ net.Net.prototype.addImportExportControls = function () { // {{{
 
   // TODO: if we want to use this, eg, for cursor coordinates, we need
   //       better layout control
-  var messageField = element('div',{"id":'messageField'});
+  var messageField = utils.element('div',{"id":'messageField'});
 
-  var importExportGroup = element('div'
-                                 ,{"id":'importExportGroup'}
-                                 ,[importForm,exportSVG,exportPNML,messageField]);
+  var importExportGroup = utils.element('div'
+                                       ,{"id":'importExportGroup'}
+                                       ,[importForm,exportSVG,exportPNML,messageField]);
   this.svgDiv.insertBefore(importExportGroup,this.svg);
 } // }}}
 

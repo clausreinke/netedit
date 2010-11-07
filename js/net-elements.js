@@ -3,7 +3,8 @@
 //
 // dependency: vector.js
 
-module("net-elements.js",[],function() {
+module("net-elements.js",["vector.js","utils.js"]
+      ,function(vector,utils) {
 
 // ----------------------------- Node {{{
 
@@ -33,16 +34,16 @@ Node.prototype.toString = function() {
  * @param y
  */
 Node.prototype.addLabel = function (x,y) {
-  this.l = elementNS(svgNS,'text'
-                    ,{'class':'label'
-                     ,'stroke':'black'
-                     ,'stroke-width':'0.1px'
-                     ,'font-size':'10px'
-                     ,'x':x
-                     ,'y':y
-                     }
-                    ,[document.createTextNode(this.name)]);
-  this.l.addEventListener('click',bind(this.rename,this),false);
+  this.l = utils.elementNS(utils.svgNS,'text'
+                          ,{'class':'label'
+                           ,'stroke':'black'
+                           ,'stroke-width':'0.1px'
+                           ,'font-size':'10px'
+                           ,'x':x
+                           ,'y':y
+                           }
+                          ,[document.createTextNode(this.name)]);
+  this.l.addEventListener('click',utils.bind(this.rename,this),false);
   this.net.contents.appendChild(this.l);
 }
 
@@ -82,8 +83,8 @@ Node.prototype.mousedownHandler = function(event) {
     return true;
   // need to keep references to dynamically constructed listeners,
   // or removeEventListener wouldn't work
-  this.listeners = { 'mousemove' : bind(action,this)
-                   , 'mouseup'   : bind(this.mouseupHandler,this)
+  this.listeners = { 'mousemove' : utils.bind(action,this)
+                   , 'mouseup'   : utils.bind(this.mouseupHandler,this)
                    }
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might otherwise miss small shapes
@@ -102,7 +103,7 @@ Node.prototype.mousedownHandler = function(event) {
 Node.prototype.mousemoveHandler = function(event) {
   var p = this.net.client2canvas(event);
   // message(this.nodeType+'.mousemoveHandler '+p);
-  this.pos = new Pos(p.x,p.y);
+  this.pos = new vector.Pos(p.x,p.y);
   this.updateView();
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
   for (var aout in this.arcsOut) this.arcsOut[aout].updateView();
@@ -137,7 +138,7 @@ Node.prototype.mouseupHandler = function(event) {
       this.net.selection = null;
     } else {
       var p = this.net.client2canvas(event);
-      var pos = new Pos(p.x,p.y);
+      var pos = new vector.Pos(p.x,p.y);
       this.net.selection.insertPoint(pos);
       this.net.selection.updateView();
     }
@@ -217,9 +218,9 @@ Place.prototype.addView = function () {
   //       other elements:-(
   // TODO: filter/translate to get valid/unique ids only!
   this.p = this.placeShape(this.id,this.pos.x,this.pos.y,this.r);
-  this.p.addEventListener('click',bind(this.clickHandler,this),false);
-  this.p.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
-  this.p.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
+  this.p.addEventListener('click',utils.bind(this.clickHandler,this),false);
+  this.p.addEventListener('mousedown',utils.bind(this.mousedownHandler,this),false);
+  this.p.addEventListener('mouseup',utils.bind(this.mouseupHandler,this),false);
   this.addLabel(this.pos.x+this.r,this.pos.y+this.r);
 }
 
@@ -231,16 +232,16 @@ Place.prototype.addView = function () {
  * @param r
  */
 Place.prototype.placeShape = function (id,x,y,r) {
-  return elementNS(svgNS,'circle'
-                  ,{'class':'place'
-                   ,'id':id
-                   ,'cx':x
-                   ,'cy':y
-                   ,'r':r
-                   ,'stroke':'black'
-                   ,'stroke-width':'1px'
-                   ,'fill':'white'
-                   });
+  return utils.elementNS(utils.svgNS,'circle'
+                        ,{'class':'place'
+                         ,'id':id
+                         ,'cx':x
+                         ,'cy':y
+                         ,'r':r
+                         ,'stroke':'black'
+                         ,'stroke-width':'1px'
+                         ,'fill':'white'
+                         });
 }
 
 /**
@@ -248,11 +249,11 @@ Place.prototype.placeShape = function (id,x,y,r) {
  */
 Place.prototype.updateView = function() {
   this.p.id = this.id; // TODO: filter/translate to get valid/unique ids only!
-  setAttributesNS(this.p,{'cx': this.pos.x
-                         ,'cy': this.pos.y
-                         ,'r' : this.r});
-  setAttributesNS(this.l,{'x': this.pos.x+this.r
-                         ,'y': this.pos.y+this.r});
+  utils.setAttributesNS(this.p,{'cx': this.pos.x
+                               ,'cy': this.pos.y
+                               ,'r' : this.r});
+  utils.setAttributesNS(this.l,{'x': this.pos.x+this.r
+                               ,'y': this.pos.y+this.r});
 }
 
 /**
@@ -342,9 +343,9 @@ Transition.prototype.addView = function () {
   // TODO: filter/translate to get valid/unique ids only!
   this.t = this.transitionShape(this.id,this.pos.x,this.pos.y
                                        ,this.width,this.height);
-  this.t.addEventListener('click',bind(this.clickHandler,this),false);
-  this.t.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
-  this.t.addEventListener('mouseup',bind(this.mouseupHandler,this),false);
+  this.t.addEventListener('click',utils.bind(this.clickHandler,this),false);
+  this.t.addEventListener('mousedown',utils.bind(this.mousedownHandler,this),false);
+  this.t.addEventListener('mouseup',utils.bind(this.mouseupHandler,this),false);
   this.addLabel(this.pos.x+0.6*this.width,this.pos.y+0.5*this.height);
 }
 
@@ -358,17 +359,17 @@ Transition.prototype.addView = function () {
  * @param h
  */
 Transition.prototype.transitionShape = function (id,x,y,w,h) {
-  return elementNS(svgNS,'rect'
-                  ,{'class':'transition'
-                   ,'id':id
-                   ,'x':x - w/2
-                   ,'y':y - h/2
-                   ,'width':w
-                   ,'height':h
-                   ,'stroke':'black'
-                   ,'stroke-width':'1px'
-                   ,'fill':'darkgrey'
-                   });
+  return utils.elementNS(utils.svgNS,'rect'
+                        ,{'class':'transition'
+                         ,'id':id
+                         ,'x':x - w/2
+                         ,'y':y - h/2
+                         ,'width':w
+                         ,'height':h
+                         ,'stroke':'black'
+                         ,'stroke-width':'1px'
+                         ,'fill':'darkgrey'
+                         });
 }
 
 /**
@@ -378,12 +379,12 @@ Transition.prototype.updateView = function() {
   var x2 = this.pos.x - this.width/2;
   var y2 = this.pos.y - this.height/2;
   this.t.id = this.id; // TODO: filter/translate to get valid/unique ids only!
-  setAttributesNS(this.t,{'x'     : x2
-                         ,'y'     : y2
-                         ,'width' : this.width
-                         ,'height': this.height});
-  setAttributesNS(this.l,{'x': this.pos.x+0.6*this.width
-                         ,'y': this.pos.y+0.5*this.height});
+  utils.setAttributesNS(this.t,{'x'     : x2
+                               ,'y'     : y2
+                               ,'width' : this.width
+                               ,'height': this.height});
+  utils.setAttributesNS(this.l,{'x': this.pos.x+0.6*this.width
+                               ,'y': this.pos.y+0.5*this.height});
 }
 
 // TODO: spread out connectors on the sides (need to find a scale
@@ -401,12 +402,12 @@ Transition.prototype.connectorFor = function(pos) {
   var x = this.pos.x;
   var y = this.pos.y;
   return ( pos.x-x > w
-         ? new Pos(x+w,y)
+         ? new vector.Pos(x+w,y)
          : x-pos.x > w 
-           ? new Pos(x-w,y)
+           ? new vector.Pos(x-w,y)
            : pos.y > y
-             ? new Pos(x,y+h)
-             : new Pos(x,y-h));
+             ? new vector.Pos(x,y+h)
+             : new vector.Pos(x,y-h));
 }
 
 // TODO: can these three handlers move to Node? (very similar to Place handlers)
@@ -473,15 +474,15 @@ Arc.prototype.toString = function() {
  * click events
  */
 Arc.prototype.addView = function() {
-  this.a = elementNS(svgNS,'path'
-                    ,{'style':'stroke-width: 1px; fill: none'
-                     ,'stroke':'black'
-                     ,'class':'arc'
-                     ,'marker-mid':'url(#Join)'
-                     ,'marker-end':'url(#Arrow)'
-                     });
-  this.a.addEventListener('click',bind(this.clickHandler,this),false);
-  this.a.addEventListener('mousedown',bind(this.mousedownHandler,this),false);
+  this.a = utils.elementNS(utils.svgNS,'path'
+                          ,{'style':'stroke-width: 1px; fill: none'
+                           ,'stroke':'black'
+                           ,'class':'arc'
+                           ,'marker-mid':'url(#Join)'
+                           ,'marker-end':'url(#Arrow)'
+                           });
+  this.a.addEventListener('click',utils.bind(this.clickHandler,this),false);
+  this.a.addEventListener('mousedown',utils.bind(this.mousedownHandler,this),false);
 }
 
 /**
@@ -573,7 +574,7 @@ Arc.prototype.findPointIndex = function(pos) {
 Arc.prototype.clickHandler = function(event) {
   // message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
   var p = this.source.net.client2canvas(event);
-  var pos = new Pos(p.x,p.y);
+  var pos = new vector.Pos(p.x,p.y);
   if (this.source.net.cursor.mode==='d') {
     var i = this.findPointIndex(pos);
     if (i>=0)
@@ -595,7 +596,7 @@ Arc.prototype.clickHandler = function(event) {
  */
 Arc.prototype.mousedownHandler = function(event) {
   var p = this.source.net.client2canvas(event);
-  var pos = new Pos(p.x,p.y);
+  var pos = new vector.Pos(p.x,p.y);
   if (this.source.net.cursor.mode==='m') {
     message('mousedown');
     var i = this.findPointIndex(pos);
@@ -607,8 +608,8 @@ Arc.prototype.mousedownHandler = function(event) {
       this.movedPoint    = this.midpoints[i];
       // need to keep references to dynamically constructed listeners,
       // or removeEventListener wouldn't work
-      this.listeners = { 'mousemove' : bind(this.mousemoveHandler,this)
-                       , 'mouseup'   : bind(this.mouseupHandler,this)
+      this.listeners = { 'mousemove' : utils.bind(this.mousemoveHandler,this)
+                       , 'mouseup'   : utils.bind(this.mouseupHandler,this)
                        }
       // redirect whole-svg events 
       // if mouse is faster than rendering, events might otherwise miss small shapes

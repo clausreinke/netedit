@@ -7,9 +7,8 @@
 // dependency: net-elements.js
 // dependency: utils.js
 
-module("net.js",[],function() {
-
-var svgNS = 'http://www.w3.org/2000/svg';
+module("net.js",["vector.js","net-elements.js","utils.js"]
+      ,function(vector,elements,utils) {
 
 // ----------------------------- Cursor {{{
 
@@ -24,7 +23,7 @@ var svgNS = 'http://www.w3.org/2000/svg';
  */
 function Cursor(net) {
   this.net = net;
-  this.pos = new Pos(0,0);
+  this.pos = new vector.Pos(0,0);
 
   var tWidth  = this.net.transitionWidth/5;
   var tHeight = this.net.transitionHeight/5;
@@ -32,7 +31,7 @@ function Cursor(net) {
   var offset  = this.net.r;
 
   // for custom cursors, we add the active shape to the palette
-  this.palette = document.createElementNS(svgNS,'g');
+  this.palette = document.createElementNS(utils.svgNS,'g');
   this.palette.id = 'cursorPalette';
   this.mode    = ''; // TODO: - an enum would be nicer
                      //       - can we replace the various switch/if on
@@ -40,11 +39,11 @@ function Cursor(net) {
                      //         obfuscating the code?
                      //       - at least use abstract mode getters..
 
-  this.transition  = Transition.prototype.transitionShape('transitionCursor'
-                                                         ,offset,-offset
-                                                         ,tWidth,tHeight);
+  this.transition  = elements.Transition.prototype.transitionShape('transitionCursor'
+                                                                  ,offset,-offset
+                                                                  ,tWidth,tHeight);
 
-  this.place  = Place.prototype.placeShape('placeCursor',offset,-offset,r);
+  this.place  = elements.Place.prototype.placeShape('placeCursor',offset,-offset,r);
 }
 
 /**
@@ -138,11 +137,11 @@ function Net(id,width,height) {
   this.svgDiv = document.createElement('div');
   this.svgDiv.id = 'svgDiv';
   this.svgDiv.setAttribute('style','margin: 10px; background: lightgrey');
-  this.svg    = elementNS(svgNS,'svg'
-                         ,{'version':'1.1'
-                          ,'width':'100%'
-                          ,'height':'10cm'
-                          });
+  this.svg    = utils.elementNS(utils.svgNS,'svg'
+                               ,{'version':'1.1'
+                                ,'width':'100%'
+                                ,'height':'10cm'
+                                });
   this.svg.id = id;
   this.svgDiv.appendChild(this.svg);
 
@@ -161,7 +160,7 @@ function Net(id,width,height) {
   // put "real" contents such as nodes and arcs into their own group, to keep
   // them separate from administrative stuff such as backdrop, cursor, defs
   // (also helps with computing bounding boxes)
-  this.contents = elementNS(svgNS,'g',{'id':'contents'});
+  this.contents = utils.elementNS(utils.svgNS,'g',{'id':'contents'});
   this.svg.appendChild(this.contents);
 
   // TODO: maintain separate groups for places/transitions/arcs and labels,
@@ -172,17 +171,17 @@ function Net(id,width,height) {
 
   // some browsers won't call these svg event listeners
   // opera 10.51: ok; firefox 3.6.10: ok; safari 5.0: no
-  // this.svg.addEventListener('click',bind(this.clickHandler,this),false);
-  // this.svg.addEventListener('mousemove',bind(this.mousemoveHandler,this),false);
-  this.svgDiv.addEventListener('click',bind(this.clickHandler,this),false);
-  this.svgDiv.addEventListener('mousemove',bind(this.mousemoveHandler,this),false);
+  // this.svg.addEventListener('click',utils.bind(this.clickHandler,this),false);
+  // this.svg.addEventListener('mousemove',utils.bind(this.mousemoveHandler,this),false);
+  this.svgDiv.addEventListener('click',utils.bind(this.clickHandler,this),false);
+  this.svgDiv.addEventListener('mousemove',utils.bind(this.mousemoveHandler,this),false);
 
   // can't listen for keypress on svg only?
   // opera 10.51: ok; firefox 3.6.2: no
   // this.svg.addEventListener('keypress',function(e){ message('keypress'); },false);
   // this.svg.addEventListener('keydown',function(e){ message('keydown'); },false);
   document.documentElement.addEventListener('keypress'
-                                           ,bind(this.keypressHandler,this)
+                                           ,utils.bind(this.keypressHandler,this)
                                            ,false);
 
   this.places      = [];
@@ -238,8 +237,8 @@ Net.prototype.transitionHeight      = 2*Net.prototype.r;
 Net.prototype.setViewSize = function (x,y,w,h) {
   this.width  = w;
   this.height = h;
-  setAttributesNS(this.svg,{'viewBox': x+' '+y+' '+w+' '+h
-                           ,'clip': y+' '+w+' '+h+' '+x}); // TODO: is this right?
+  utils.setAttributesNS(this.svg,{'viewBox': x+' '+y+' '+w+' '+h
+                                 ,'clip': y+' '+w+' '+h+' '+x}); // TODO: is this right?
   this.updateBackdrop();
 }
 
@@ -247,20 +246,20 @@ Net.prototype.setViewSize = function (x,y,w,h) {
  * add backdrop (to capture events in the absence of other SVG elements)
  */
 Net.prototype.addBackdrop = function () {
-  this.svgBackdrop = elementNS(svgNS,'rect'
-                              ,{'id':'svgBackdrop'
-                               ,'fill':'lightgrey'
-                               });
+  this.svgBackdrop = utils.elementNS(utils.svgNS,'rect'
+                                    ,{'id':'svgBackdrop'
+                                     ,'fill':'lightgrey'
+                                     });
   this.updateBackdrop();
   this.svg.appendChild(this.svgBackdrop);
 }
 
 Net.prototype.updateBackdrop = function () {
   var boundingRect = this.svgDiv;
-  setAttributesNS(this.svgBackdrop,{'x': boundingRect.clientLeft
-                                   ,'y': boundingRect.clientTop
-                                   ,'width': boundingRect.clientWidth
-                                   ,'height': boundingRect.clientHeight});
+  utils.setAttributesNS(this.svgBackdrop,{'x': boundingRect.clientLeft
+                                         ,'y': boundingRect.clientTop
+                                         ,'width': boundingRect.clientWidth
+                                         ,'height': boundingRect.clientHeight});
 }
 
 /**
@@ -270,11 +269,11 @@ Net.prototype.updateBackdrop = function () {
 //          starts/splits/ends arcs
 // note: future versions will use keybindings differently
 Net.prototype.addHelp = function () {
-  this.help = elementNS(svgNS,'text'
-                       ,{'id':'netHelp'
-                        ,'fill':'blue'
-                        ,'font-size':'10'
-                        });
+  this.help = utils.elementNS(utils.svgNS,'text'
+                             ,{'id':'netHelp'
+                              ,'fill':'blue'
+                              ,'font-size':'10'
+                              });
   var lines = ['-- simple Petri net editor, version 0.1-alpha (18/05/2010) --'
               ,' '
               ,'press "t" then click on background to add transitions'
@@ -292,8 +291,8 @@ Net.prototype.addHelp = function () {
               ,'press "?" to toggle this help text'
               ];
   for (var l in lines) {
-    var tspan = elementNS(svgNS,'tspan',{'dy':'1em','x':'0em'}
-                         ,[document.createTextNode(lines[l])]);
+    var tspan = utils.elementNS(utils.svgNS,'tspan',{'dy':'1em','x':'0em'}
+                               ,[document.createTextNode(lines[l])]);
     this.help.appendChild(tspan);
   }
   this.help.style.display = 'none';
@@ -312,32 +311,32 @@ Net.prototype.toggleHelp = function() {
  * SVG definitions (currently just an arrowhead marker for arcs)
  */
 Net.prototype.addDefs = function () {
-  var arrow = elementNS(svgNS,'marker'
-                        ,{'id':'Arrow'
-                         ,'viewBox':'0 0 10 10'
-                         ,'refX':'10'
-                         ,'refY':'5'
-                         ,'markerUnits':'userSpaceOnUse'
-                         ,'markerWidth':'10'
-                         ,'markerHeight':'10'
-                         ,'orient':'auto'
-                         }
-                        ,[elementNS(svgNS,'path'
-                                   ,{'d':'M 0 0 L 10 5 L 0 10 z'})]);
-  var join = elementNS(svgNS,'marker'
-                        ,{'id':'Join'
-                         ,'viewBox':'0 0 3 3'
-                         ,'refX':'1.5'
-                         ,'refY':'1.5'
-                         ,'markerUnits':'userSpaceOnUse'
-                         ,'markerWidth':'3'
-                         ,'markerHeight':'3'
-                         ,'orient':'auto'
-                         }
-                        ,[elementNS(svgNS,'circle'
-                                   ,{'r':'1.5','cx':'1.5','cy':'1.5'})]);
+  var arrow = utils.elementNS(utils.svgNS,'marker'
+                             ,{'id':'Arrow'
+                              ,'viewBox':'0 0 10 10'
+                              ,'refX':'10'
+                              ,'refY':'5'
+                              ,'markerUnits':'userSpaceOnUse'
+                              ,'markerWidth':'10'
+                              ,'markerHeight':'10'
+                              ,'orient':'auto'
+                              }
+                             ,[utils.elementNS(utils.svgNS,'path'
+                                              ,{'d':'M 0 0 L 10 5 L 0 10 z'})]);
+  var join = utils.elementNS(utils.svgNS,'marker'
+                            ,{'id':'Join'
+                             ,'viewBox':'0 0 3 3'
+                             ,'refX':'1.5'
+                             ,'refY':'1.5'
+                             ,'markerUnits':'userSpaceOnUse'
+                             ,'markerWidth':'3'
+                             ,'markerHeight':'3'
+                             ,'orient':'auto'
+                             }
+                            ,[utils.elementNS(utils.svgNS,'circle'
+                                             ,{'r':'1.5','cx':'1.5','cy':'1.5'})]);
 
-  var defs   = elementNS(svgNS,'defs',{},[arrow,join]);
+  var defs   = utils.elementNS(utils.svgNS,'defs',{},[arrow,join]);
   this.svg.appendChild(defs);
 }
 
@@ -385,10 +384,10 @@ Net.prototype.clickHandler = function (event) {
  * @param midpoints
  */
 Net.prototype.addArc = function (source,target,midpoints) {
-  if ((source instanceof Transition && target instanceof Place)
-    ||(source instanceof Place && target instanceof Transition)) {
+  if ((source instanceof elements.Transition && target instanceof elements.Place)
+    ||(source instanceof elements.Place && target instanceof elements.Transition)) {
 
-    var arc = new Arc(source,target,midpoints);
+    var arc = new elements.Arc(source,target,midpoints);
     this.arcs.push(arc);
     source.registerArcAtSource(arc);
     target.registerArcAtTarget(arc);
@@ -421,8 +420,8 @@ Net.prototype.removeArc = function (arc) {
  * @param name
  */
 Net.prototype.addPlace = function (id,x,y,r,name) {
-  var place = new Place(this,id,name?name:id
-                       ,new Pos(x,y)
+  var place = new elements.Place(this,id,name?name:id
+                       ,new vector.Pos(x,y)
                        ,r?r:this.r);
   this.places[id] = place;
   this.contents.appendChild(place.p);
@@ -455,11 +454,11 @@ Net.prototype.removePlace = function (place) {
  * @param name
  */
 Net.prototype.addTransition = function (id,x,y,w,h,name) {
-  var transition = new Transition(this,id,name?name:id
-                                 ,new Pos(x,y)
-                                 ,w?w:this.transitionWidth
-                                 ,h?h:this.transitionHeight
-                                 );
+  var transition = new elements.Transition(this,id,name?name:id
+                                          ,new vector.Pos(x,y)
+                                          ,w?w:this.transitionWidth
+                                          ,h?h:this.transitionHeight
+                                          );
   this.transitions[id] = transition;
   this.contents.appendChild(transition.t);
   return transition;
@@ -506,13 +505,13 @@ Net.prototype.keypressHandler = function (event) {
   // other keys should first enter neutral state, then set new cursor mode
   // TODO: safari 5.0 doesn't listen to \esc; workaround: use other unused key for now
   if (this.selection) {
-    if (this.selection instanceof Arc) {
+    if (this.selection instanceof elements.Arc) {
       message('cancelling Arc construction in progress');
       this.contents.removeChild(this.selection.a);
       this.selection.source.cancelListeners();
 
-    } else if ((this.selection instanceof Place)
-             ||(this.selection instanceof Transition)) {
+    } else if ((this.selection instanceof elements.Place)
+             ||(this.selection instanceof elements.Transition)) {
       message('cancelling Node move in progress');
       this.selection.cancelListeners();
     }
@@ -550,6 +549,5 @@ Net.prototype.mousemoveHandler = function (event) {
 
 return { Cursor: Cursor
        , Net:    Net
-       , svgNS:  svgNS
        };
 });

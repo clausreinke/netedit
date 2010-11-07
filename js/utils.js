@@ -6,6 +6,8 @@
 
 module("utils.js",[],function(){
 
+var svgNS = 'http://www.w3.org/2000/svg';
+
 /**
  * bind function 'this'-reference (mostly so that we can register 
  * model object methods as view object event listeners, with
@@ -62,7 +64,8 @@ function setAttributesNS(e,attributes) {
 }
 
 // exports
-return { bind:            bind
+return { svgNS:           svgNS
+       , bind:            bind
        , element:         element
        , elementNS:       elementNS
        , setAttributesNS: setAttributesNS

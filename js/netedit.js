@@ -17,8 +17,7 @@ function module(name,imports,mod) {
   modules[name] = {name:name, imports: imports, mod: mod};
 }
 
-// TODO: - don't rely on dependency order
-//       - don't just export to window
+// TODO: - don't rely on dependency order, sort
 /**
  * assuming that the modules have been loaded/recorded in dependency
  * order, we can link and instantiate them by calling each module's
@@ -27,15 +26,16 @@ function module(name,imports,mod) {
  */
 function linkModules() {
   window.console.log('linking modules');
+  var linkedModules = [];
   for (var name in modules) {
     var module  = modules[name];
     var imports = module.imports;
     window.console.log('linking module '+name+', importing '+imports.join(','));
     var imps = []; for (var imp in imports) imps.push(modules[imports[imp]].linked);
     modules[name].linked = module.mod.apply(null,imps);
-    for (var export in modules[name].linked)
-      window[export] = modules[name].linked[export];
+    linkedModules[name] = modules[name].linked;
   }
+  return linkedModules
 }
 
 (function () {

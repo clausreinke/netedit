@@ -85,7 +85,9 @@ function initNet() {
 
 </head>
 
-<body onload="linkModules();
+<body onload="var linkedModules = linkModules();
+              window.Net = linkedModules['net.js'].Net;
+              window.messagePre = linkedModules['debug.js'].messagePre;
               initNet();
               window.console.log(checkpoint(window,before));
               // JSEval('messages'); ObjectViewer('messages');
