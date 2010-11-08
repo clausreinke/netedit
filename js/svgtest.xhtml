@@ -47,50 +47,50 @@ var before = checkpoint(window);
 <script type="text/javascript" src="netedit.js"/>
 
 <script type="text/javascript"><![CDATA[
-function initNet() {
 
-  /* var */ net  = new Net('net',500,300);
+module('main',['debug.js','net.js','net-import-export.js']
+      ,function(debug,net,net_imp_exp) {
+              
+  /* var */ a_net  = new net.Net('a_net',500,300);
 
-  var in1  = net.addPlace('in1' , 100, 100);
-  var in2  = net.addPlace('in2' , 100, 200);
-  var t1   = net.addTransition('t1',200,150);
-  var out1 = net.addPlace('out1', 300, 100);
-  var out2 = net.addPlace('out2', 300, 200);
+  var in1  = a_net.addPlace('in1' , 100, 100);
+  var in2  = a_net.addPlace('in2' , 100, 200);
+  var t1   = a_net.addTransition('t1',200,150);
+  var out1 = a_net.addPlace('out1', 300, 100);
+  var out2 = a_net.addPlace('out2', 300, 200);
 
-  var a1 = net.addArc(in1,t1);
-  var a2 = net.addArc(in2,t1);
-  var a3 = net.addArc(t1,out1);
-  var a4 = net.addArc(t1,out2);
+  var a1 = a_net.addArc(in1,t1);
+  var a2 = a_net.addArc(in2,t1);
+  var a3 = a_net.addArc(t1,out1);
+  var a4 = a_net.addArc(t1,out2);
 
-  // net.removeArc(a2);
-  // net.removePlace(out1);
-  // net.removeTransition(t1);
+  // a_net.removeArc(a2);
+  // a_net.removePlace(out1);
+  // a_net.removeTransition(t1);
 
-  // wrap(net,'addArc',{before:function(s,t,m){
+  // wrap(a_net,'addArc',{before:function(s,t,m){
   //   message('addArc: '+s+'>'+t+' : '+m.map(function(p){return p.x+'/'+p.y;}).join(','));
   //   }});
   // wrap(Node.prototype,'cancelListeners',{before:function(){message('cancelListeners: '+this);}});
   // wrap(Node.prototype,'mousedownHandler',{before:function(e){message('mousedownHandler: '+this);}});
   // wrap(Node.prototype,'mouseupHandler',{before:function(e){message('mouseupHandler: '+this);}});
 
-  document.body.insertBefore(net.svgDiv,document.body.firstChild);
+  document.body.insertBefore(a_net.svgDiv,document.body.firstChild);
 
-  net.addImportExportControls();
-  net.toggleHelp();
+  a_net.addImportExportControls();
+  a_net.toggleHelp();
 
-  messagePre(net.toString());
-}
+  debug.messagePre(a_net.toString());
+
+  window.console.log(checkpoint(window,before));
+
+});
 
 ]]></script>
 
 </head>
 
-<body onload="var linkedModules = linkModules();
-              window.Net = linkedModules['net.js'].Net;
-              window.messagePre = linkedModules['debug.js'].messagePre;
-              initNet();
-              window.console.log(checkpoint(window,before));
-              // JSEval('messages'); ObjectViewer('messages');
+<body onload=" // JSEval('messages'); ObjectViewer('messages');
               ">
 <div id='messages'/>
 
