@@ -45,11 +45,19 @@ var before = checkpoint(window);
 ]]></script>
 
 <script type="text/javascript" src="modules.js"/>
+<!--
+<script type="text/javascript" src="packaged.js"/>
+-->
 
 <script type="text/javascript"><![CDATA[
 
-module('main',['debug.js','net.js','net-import-export.js']
-      ,function(debug,net,net_imp_exp) {
+module('package',['debug.js','net-import-export.js'],function(debug,net) {
+  packaged = packageModules(['main','package']);
+  debug.messagePre(packaged);
+});
+
+module('main',['debug.js','net-import-export.js']
+      ,function(debug,net) {
               
   /* var */ a_net  = new net.Net('a_net',500,300);
 

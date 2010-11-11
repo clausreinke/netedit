@@ -2,6 +2,7 @@
 // Net elements: Nodes (Places, Transitions) and Arcs (load before net.js)
 //
 // dependency: vector.js
+// dependency: utils.js
 
 module("net-elements.js",["vector.js","utils.js"]
       ,function(vector,utils) {

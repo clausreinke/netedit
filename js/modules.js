@@ -44,54 +44,88 @@ function loadModule(mod) {
 }
 
 /**
+ * Sort modules by dependencies (dependents last), returning
+ * sorted list of module names.
+ * 
+ * @param modules
+ */
+function dependency_sort(modules) {
+  var pending = [], sorted = [], been_here = {};
+  for (var name in modules) pending.push(name);
+  while (pending.length>0) {
+    var m    = pending.shift();
+    if (been_here[m] && been_here[m]<=pending.length)
+      throw("can't sort dependencies: "+sorted+" < "+m+" < "+pending);
+    else
+      been_here[m] = pending.length;
+    var deps = modules[m].imports;
+    if (deps.every(function(e){return sorted.indexOf(e)!==-1;}))
+      sorted.push(m);
+    else
+      pending.push(m);
+  }
+  return sorted;
+}
+
+
+/**
  * assuming that the modules have been loaded/recorded in dependency
  * order, we can link and instantiate them by calling each module's
- * module function with linked variants of its imports; instead of
- * just exporting all the module's exports to window, we return a 
- * map of linked modules, enabling selective import.
+ * module function with linked variants of its imports; we do not
+ * just export all the module's exports to window - to selectively
+ * import and use the linked modules, just write an inline module).
  */
 function linkModules() {
   window.console.log('linking modules');
 
-  function dependency_sort() {
-    var pending = [], sorted = [], been_here = {};
-    for (var name in modules) pending.push(name);
-    while (pending.length>0) {
-      var m    = pending.shift();
-      if (been_here[m] && been_here[m]<=pending.length)
-        throw("can't sort dependencies: "+sorted+" < "+m+" < "+pending);
-      else
-        been_here[m] = pending.length;
-      var deps = modules[m].imports;
-      if (deps.every(function(e){return sorted.indexOf(e)!==-1;}))
-        sorted.push(m);
-      else
-        pending.push(m);
-    }
-    return sorted;
-  }
+  var sortedNames   = dependency_sort(modules);
 
-  var linkedModules = [],
-      sorted        = dependency_sort();
-
-  for (var next in sorted) {
-    var name    = sorted[next];
+  for (var nextName in sortedNames) {
+    var name    = sortedNames[nextName];
     var module  = modules[name];
     var imports = module.imports;
-    window.console.log('linking module '+name+', importing '+imports.join(','));
+    window.console.log('linking module '+name
+                      +', importing '+(imports.length>0?imports.join(','):'nothing'));
     var imps = []; for (var imp in imports) imps.push(modules[imports[imp]].linked);
     modules[name].linked = module.mod.apply(null,imps);
-    linkedModules[name] = modules[name].linked;
   }
-
-  return linkedModules
 }
 
-// export only the module function (to load modules, just 
-// write an inline module with those modules as dependencies); 
-// implicitly call linkModules after all modules are ready
-// (this also means that all modules need to be in the head)
-window.module      = module;
+/**
+ * Concatenate modules in dependency order, skipping excluded modules. If you
+ * store the result in a file, you can pre-load all modules from there, avoiding
+ * separate script loads. This could be combined with packing and compression.
+ *
+ * @param excluded
+ */
+function packageModules(excluded) {
+  window.console.log('packaging modules');
+
+  var packaged      = "",
+      sortedNames   = dependency_sort(modules);
+
+  for (var nextName in sortedNames) {
+    var name    = sortedNames[nextName];
+    if (excluded.indexOf(name)!=-1) continue;
+    var module  = modules[name];
+    var imports = module.imports;
+    window.console.log('packaging module '+name
+                      +', importing '+(imports.length>0?imports.join(','):'nothing'));
+    var imps = []; for (var imp in imports) imps.push(modules[imports[imp]].linked);
+    packaged += "module('"+name+"',["
+                       +imports.map(function(e){return "'"+e+"'"}).join(",")+"],"
+                       +module.mod+");";
+  }
+
+  return packaged;
+}
+
+// export only the module and packageModules functions (to load modules, just
+// write an inline module with those modules as dependencies); implicitly
+// call linkModules after all modules are ready (this also means that all
+// modules need to be in the head)
+window.module         = module;
+window.packageModules = packageModules;
 window.addEventListener('load',linkModules,false);
 
   // calling linkModules here wouldn't work, as loadModule only adds the

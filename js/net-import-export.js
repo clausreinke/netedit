@@ -6,8 +6,8 @@
 // dependency: debug.js
 // dependency: net.js
 
-module("net-import-export.js",["net.js","utils.js"]
-      ,function(net,utils) {
+module("net-import-export.js",["net.js","debug.js","vector.js","utils.js"]
+      ,function(net,debug,vector,utils) {
 
 // TODO: we have extra lines accumulating around text node contents
 //       during import/export loops (as well as extra whitespace around
@@ -111,7 +111,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
     var dx = d ? d.attributes['x'].nodeValue : '1000';
     var dy = d ? d.attributes['y'].nodeValue : '1000';
     this.setViewSize(px,py,dx,dy);
-    message('** net dimensions '+p+'|'+d+' : '+px+' '+py+' '+dx+' '+dy);
+    debug.message('** net dimensions '+p+'|'+d+' : '+px+' '+py+' '+dx+' '+dy);
     // if dimensions are missing, we'll try to estimate them
     // (we keep track of max node coordinates)
     if (!d) { dx = 0; dy = 0; } 
@@ -131,11 +131,11 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
         var y     = pos.attributes['y'].nodeValue;
         px = Math.min(px,x); dx = Math.max(dx,x);
         py = Math.min(py,y); dy = Math.max(dy,y);
-        // message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
+        // debug.message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
         this.addPlace(id,x*scale,y*scale,unit,name?name.textContent:null);
       } else {
-        message('sorry, no automatic layout - all nodes should have positions');
-        messagePre(listXML('',place).join("\n"));
+        debug.message('sorry, no automatic layout - all nodes should have positions');
+        debug.messagePre(listXML('',place).join("\n"));
       }
     }
 
@@ -150,11 +150,11 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
         var y     = pos.attributes['y'].nodeValue;
         px = Math.min(px,x); dx = Math.max(dx,x);
         py = Math.min(py,y); dy = Math.max(dy,y);
-        // message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
+        // debug.message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
         this.addTransition(id,x*scale,y*scale,2*unit,2*unit,name?name.textContent:null);
       } else {
-        message('sorry, no automatic layout - all nodes should have positions');
-        messagePre(listXML('',transition).join("\n"));
+        debug.message('sorry, no automatic layout - all nodes should have positions');
+        debug.messagePre(listXML('',transition).join("\n"));
       }
     }
 
@@ -164,7 +164,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
       var id  = arc.getAttributeNS(null,'id');
       var sourceId = arc.getAttributeNS(null,'source');
       var targetId = arc.getAttributeNS(null,'target');
-      // message(id+': '+sourceId+' -> '+targetId);
+      // debug.message(id+': '+sourceId+' -> '+targetId);
       var positions = arc.querySelectorAll('graphics>position');
       if (positions.length>0) {
         var midpoints = [];
@@ -172,7 +172,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
           var pos = positions[j];
           var x   = pos.attributes['x'].nodeValue;
           var y   = pos.attributes['y'].nodeValue;
-          midpoints.push(new Pos(x,y));
+          midpoints.push(new vector.Pos(x,y));
         }
       } else
         var midpoints = null;
@@ -181,7 +181,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
       else if (this.places[sourceId] && this.transitions[targetId])
         this.addArc(this.places[sourceId],this.transitions[targetId],midpoints);
       else
-        message('cannot find source and target');
+        debug.message('cannot find source and target');
     }
 
     if (!p || !d) { // no dimensions specified, try bounding box instead
@@ -192,7 +192,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
                     // TODO: if there were no useable nodes (no positions specified),
                     //       there is no useable bounding box either..
       var bbox = this.contents.getBBox(); // TODO: why isn't this tight in opera 10.10?
-      message('** (min/max) '+px+' '+py+' '+dx+' '+dy);
+      debug.message('** (min/max) '+px+' '+py+' '+dx+' '+dy);
       listProperties('contents.BBox',bbox);
       if (false&&navigator.appName.match(/Opera/)) // TODO: bounding box bug fixed in 10.51?
         this.setViewSize(px,py,dx+10,dy+10);
@@ -200,7 +200,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
         this.setViewSize(bbox.x,bbox.y,bbox.width,bbox.height);
     }
   } else
-    message('querySelectorAll not supported');
+    debug.message('querySelectorAll not supported');
 } // }}}
 
 /**
@@ -249,44 +249,44 @@ net.Net.prototype.addImportExportControls = function () { // {{{
       // widget/elevated-permissions modes)
       // TODO: clean up!
       var pnml = null;
-      message('importing PNML file '+importSelector.value);
+      debug.message('importing PNML file '+importSelector.value);
       if (importSelector.files
          && !navigator.appVersion.match(/Safari/)) { // use File API, if present
-        message('File API available');
+        debug.message('File API available');
         var file = importSelector.files.item(0);
         if (file) {
           // TODO: safari 5.0 can't do anything with the file here?
           //       workaround: use XHR route for now
           var contents = file.getAsText(null);
-          messagePre(contents);
+          debug.messagePre(contents);
           if (DOMParser) {
             var parser = new DOMParser();
             var pnml   = parser.parseFromString(contents,'text/xml');
           } else
-            message('sorry, cannot find DOMParser');
+            debug.message('sorry, cannot find DOMParser');
         } else {
-          message('sorry, no file name specified');
+          debug.message('sorry, no file name specified');
         }
       } else if (XMLHttpRequest) { // conventional route, limited by filepath security
         if (importSelector.value) {
           var filename = importSelector.value.replace(/^C:[\/\\]fake_?path[\/\\]/,'');
-          message('(useable portion of) filename is: '+filename);
-          message('(note: local filenames should be written as _relative_ paths with _forward_ slashes)');
-          message('falling back to XMLHttpRequest');
+          debug.message('(useable portion of) filename is: '+filename);
+          debug.message('(note: local filenames should be written as _relative_ paths with _forward_ slashes)');
+          debug.message('falling back to XMLHttpRequest');
           var xhr = new XMLHttpRequest(); // browser-specific, ok in opera/firefox
           try {
             xhr.open('GET',filename,false);
             xhr.send(null);
           } catch (e) {
-            message('unable to import PNML file: ');
-            messagePre(e.toString());
+            debug.message('unable to import PNML file: ');
+            debug.messagePre(e.toString());
           }
           var pnml = xhr.responseXML;
           // listProperties('xhr',xhr,/./,true);
         } else
-          message('sorry, no file name specified');
+          debug.message('sorry, no file name specified');
       } else
-        message('unable to import PNML file');
+        debug.message('unable to import PNML file');
       if (pnml) {
         // TODO: is there a way to determine whether the load was successful?
         //       it seems we can get back a non-null but useless responseXML
@@ -295,12 +295,12 @@ net.Net.prototype.addImportExportControls = function () { // {{{
         net.removeAll();
         try { net.fromPNML(pnml) }
         catch (e) {
-          message('PNML document could not be interpreted (is the filename correct?):');
-          messagePre(e.toString());
-          messagePre(listXML('',pnml).join("\n"));
+          debug.message('PNML document could not be interpreted (is the filename correct?):');
+          debug.messagePre(e.toString());
+          debug.messagePre(listXML('',pnml).join("\n"));
         }
       } else
-        message('no PNML file loaded');
+        debug.message('no PNML file loaded');
       event.preventDefault();
       return false;
     },false);
@@ -327,7 +327,7 @@ net.Net.prototype.addImportExportControls = function () { // {{{
       // TODO: should we use DOM3 Load and Save / XMLSerializer / toXMLString instead?
       //        or the DOM tree walkers? otherwise, move listXML from debug to utils
       var xml = listXML('',svgOut).join("\n");
-      messagePre(xml);
+      debug.messagePre(xml);
       delete svgOut;
       // location = 'data:image/svg+xml,'+encodeURIComponent(xml);
       // TODO: firefox used to crash here; no longer, but what was the problem?
@@ -350,7 +350,7 @@ net.Net.prototype.addImportExportControls = function () { // {{{
                                  });
   exportPNML.addEventListener('click',function(){
       var pnml = net.toPNML();
-      messagePre(pnml);
+      debug.messagePre(pnml);
       // location = 'data:application/xml,'+encodeURIComponent(pnml);
       // use application/octet-stream to force "save as"-dialogue
       location = 'data:application/octet-stream,'+encodeURIComponent(pnml);
@@ -366,6 +366,6 @@ net.Net.prototype.addImportExportControls = function () { // {{{
   this.svgDiv.insertBefore(importExportGroup,this.svg);
 } // }}}
 
-return {
+return { Net: net.Net
        };
 });
