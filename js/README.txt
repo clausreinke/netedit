@@ -5,16 +5,53 @@ Version          : 0.1-alpha (<insert release date>)
 Project home page: <tbd (googlecode? what about licensing?)>
 Author           : Claus Reinke <claus.reinke@talk21.com>
 
-last update      : 07.10.2010
-tested with      : Opera 10.53, Firefox 3.6.10, Safari 5.0
-
-PLEASE NOTE: this code has not yet been released - please do not distribute!
+last update            : 07.10.2010
+originally tested with : Opera 10.53, Firefox 3.6.10, Safari 5.0
 
 ----------------- Summary:
 
   Can currently edit simple, single-page Place/Transition-Nets without markings,
   export them to PNML or SVG, and import them from PNML. Lots of basic features
   still missing in this initial release (also, consider it alpha quality!-)
+
+PLEASE NOTE: this code is not in release state - it was partly a means for
+             me to learn about using SVG, partly a feasibility study. I've just
+             converted my old darcs repo to git, to make it easier to access. 
+             A quick status check (see below) shows that the new IE9 has fitted
+             right in to the APIs I coded against, which is nice, but all the
+             browsers, including those I originally tested with, no longer run
+             the full code as they used to (hopefully just minor API evolution,
+             but still disappointing, after less than a year).
+
+             I plan to fix the features gone missing, so that the editor will be
+             basic but useable once again, but have not yet decided how take
+             this further afterwards (the user interface is not just basic, but
+             old-fashioned, but I do want a Javascript-based Petri net editor,
+             and if the old code doesn't look too bad a year later, there is
+             only the problem of finding the time..).
+
+             Feel free to play with it, don't blame me for anything, let
+             me know if you find it useful, and please do not re-distribute!
+
+----------------- Status check (27.06.2011): sad state of affairs..
+
+  Opera 11.01
+    moving arc midpoints doesn't work
+    import/export doesn't work
+
+  Firefox 5.0
+    keyboard events stop working after first t/p
+    moving arc midpoints doesn't work
+    export doesn't work
+
+  Safari 5.0
+    TypeError on module loading:-(
+
+  IE 9
+    no display initially, reload starts working after F12?-(
+    moving arc midpoints doesn't work
+    arrow heads aren't filled
+    import/export doesn't work
 
 ----------------- Files (see svgtest.xhtml for an example instantiation):
 
