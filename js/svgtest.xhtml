@@ -49,12 +49,21 @@ var before = checkpoint(window);
 <script type="text/javascript" src="packaged.js"/>
 -->
 
+</head>
+
+<body onload=" // JSEval('messages'); ObjectViewer('messages');
+              ">
+<div id='messages'/>
+
 <script type="text/javascript"><![CDATA[
+
+/* TODO: support packageModules again, in updated modules.js
 
 module('package',['debug.js','net-import-export.js'],function(debug,net) {
   packaged = packageModules(['main','package']);
   debug.messagePre(packaged);
 });
+*/
 
 module('main',['debug.js','net-import-export.js']
       ,function(debug,net) {
@@ -90,17 +99,12 @@ module('main',['debug.js','net-import-export.js']
 
   debug.messagePre(a_net.toString());
 
-  window.console.log(checkpoint(window,before));
+  debug.messagePre(checkpoint(window,before));
 
 });
 
 ]]></script>
 
-</head>
-
-<body onload=" // JSEval('messages'); ObjectViewer('messages');
-              ">
-<div id='messages'/>
 
 <hr/>
 

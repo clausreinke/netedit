@@ -4,8 +4,8 @@
 // dependency: vector.js
 // dependency: utils.js
 
-module("net-elements.js",["vector.js","utils.js"]
-      ,function(vector,utils) {
+module("net-elements.js",["vector.js","utils.js","debug.js"]
+      ,function(vector,utils,debug) {
 
 // ----------------------------- Node {{{
 
@@ -103,7 +103,7 @@ Node.prototype.mousedownHandler = function(event) {
  */
 Node.prototype.mousemoveHandler = function(event) {
   var p = this.net.client2canvas(event);
-  // message(this.nodeType+'.mousemoveHandler '+p);
+  // debug.message(this.nodeType+'.mousemoveHandler '+p);
   this.pos = new vector.Pos(p.x,p.y);
   this.updateView();
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
@@ -118,7 +118,7 @@ Node.prototype.mousemoveHandler = function(event) {
  */
 Node.prototype.newArcHandler = function(event) {
   // var p = this.net.client2canvas(event);
-  // message(this.nodeType+'.newArcHandler '+p);
+  // debug.message(this.nodeType+'.newArcHandler '+p);
   this.net.selection.updateView();
   return true;
 }
@@ -534,7 +534,7 @@ Arc.prototype.insertPoint = function(pos) {
     var lpos  = vpos.length();
     var lnext = vnext.length();
     if (lpos===0) {
-      message('midpoint already exists');
+      debug.message('midpoint already exists');
       break;
     }
     if ((lpos<=lnext) && vpos.scale(lnext/lpos).close(vnext)) {
@@ -573,7 +573,7 @@ Arc.prototype.findPointIndex = function(pos) {
  * @param event
  */
 Arc.prototype.clickHandler = function(event) {
-  // message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
+  // debug.message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
   var p = this.source.net.client2canvas(event);
   var pos = new vector.Pos(p.x,p.y);
   if (this.source.net.cursor.mode==='d') {
@@ -599,10 +599,10 @@ Arc.prototype.mousedownHandler = function(event) {
   var p = this.source.net.client2canvas(event);
   var pos = new vector.Pos(p.x,p.y);
   if (this.source.net.cursor.mode==='m') {
-    message('mousedown');
+    debug.message('mousedown');
     var i = this.findPointIndex(pos);
     if (i>=0) {
-      message(i);
+      debug.message(i);
       this.a.setAttributeNS(null,'stroke','green'); 
       // TODO: allow moving midpoint pi here
       this.source.net.selection = this;

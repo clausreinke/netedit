@@ -16,7 +16,7 @@
 
 module("debug.js",[],function() {
 
-// logging messages to div element {{{
+// logging messages to div element
 /**
  * use document element div (default 'messages') as a simple output console for
  * message msg
@@ -24,18 +24,19 @@ module("debug.js",[],function() {
  * @param msg
  * @param div
  */
-function message(msg,div) {
+function message(msg,div) { // {{{
   var msgs = document.getElementById(div==null?'messages':div);
   msgs.appendChild(document.createTextNode(msg));
   msgs.appendChild(document.createElement("br"));
-}
+} // }}}
+
 /**
  * use document element div (default 'messages') as a console for formatted output msg
  * 
  * @param msg
  * @param div
  */
-function messagePre(msg,div) {
+function messagePre(msg,div) { // {{{
   var msgs = document.getElementById(div==null?'messages':div);
   var pre  = document.createElement('pre');
   pre.appendChild(document.createTextNode(msg));

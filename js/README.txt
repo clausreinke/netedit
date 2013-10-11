@@ -1,27 +1,24 @@
 
 ----------------- a simple Petri net editor (Browser Javascript plus SVG)
 
-Version          : 0.1-alpha (<insert release date>)
-Project home page: <tbd (googlecode? what about licensing?)>
+Project home page: 
 Author           : Claus Reinke <claus.reinke@talk21.com>
-
-last update            : 07.10.2010
-originally tested with : Opera 10.53, Firefox 3.6.10, Safari 5.0
 
 ----------------- Summary:
 
   Can currently edit simple, single-page Place/Transition-Nets without markings,
   export them to PNML or SVG, and import them from PNML. Lots of basic features
-  still missing in this initial release (also, consider it alpha quality!-)
+  still missing in this initial version (also, consider it alpha quality!-)
 
 PLEASE NOTE: this code is not in release state - it was partly a means for
-             me to learn about using SVG, partly a feasibility study. I've just
-             converted my old darcs repo to git, to make it easier to access. 
-             A quick status check (see below) shows that the new IE9 has fitted
-             right in to the APIs I coded against, which is nice, but all the
-             browsers, including those I originally tested with, no longer run
-             the full code as they used to (hopefully just minor API evolution,
-             but still disappointing, after less than a year).
+             me to learn about writing an interactive SVG/in-browser
+             application, partly a feasibility study. I've just converted my old
+             darcs repo to git, to make it easier to access.  A quick status
+             check (see below) shows that the new IE9 has fitted right in to the
+             APIs I coded against, which is nice, but all the browsers,
+             including those I originally tested with, no longer run the full
+             code as they used to (hopefully just minor API evolution, but still
+             disappointing, after less than a year).
 
              I plan to fix the features gone missing, so that the editor will be
              basic but useable once again, but have not yet decided how take
@@ -35,23 +32,23 @@ PLEASE NOTE: this code is not in release state - it was partly a means for
 
 ----------------- Status check (27.06.2011): sad state of affairs..
 
-  Opera 11.01
-    moving arc midpoints doesn't work
-    import/export doesn't work
+  Opera 11.50
+    import doesn't work (XMLHttpRequest gives empty results, no error messages;
+      apparently, that is a security setting:
+        opera:config->User Prefs->Allow File XMLHttpRequest
+      is off by default; toggling to on makes import work)
 
   Firefox 5.0
     keyboard events stop working after first t/p
-    moving arc midpoints doesn't work
-    export doesn't work
+    doesn't embed svg in html
 
   Safari 5.0
-    TypeError on module loading:-(
+    fickle event recognition
 
   IE 9
-    no display initially, reload starts working after F12?-(
-    moving arc midpoints doesn't work
     arrow heads aren't filled
-    import/export doesn't work
+    export doesn't work (tries to open data url, no option to save?)
+    doesn't embed svg in html
 
 ----------------- Files (see svgtest.xhtml for an example instantiation):
 

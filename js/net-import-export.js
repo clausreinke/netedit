@@ -83,7 +83,7 @@ net.Net.prototype.toPNML = function() { // {{{
   var pnml = document.implementation.createDocument("http://www.pnml.org/version-2009/grammar/pnml",'pnml',null);
   pnml.documentElement.appendChild(n);
 
-  return listXML('',pnml.documentElement).join("\n");
+  return debug.listXML('',pnml.documentElement).join("\n");
 } // }}}
 
 /**
@@ -135,7 +135,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
         this.addPlace(id,x*scale,y*scale,unit,name?name.textContent:null);
       } else {
         debug.message('sorry, no automatic layout - all nodes should have positions');
-        debug.messagePre(listXML('',place).join("\n"));
+        debug.messagePre(debug.listXML('',place).join("\n"));
       }
     }
 
@@ -154,7 +154,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
         this.addTransition(id,x*scale,y*scale,2*unit,2*unit,name?name.textContent:null);
       } else {
         debug.message('sorry, no automatic layout - all nodes should have positions');
-        debug.messagePre(listXML('',transition).join("\n"));
+        debug.messagePre(debug.listXML('',transition).join("\n"));
       }
     }
 
@@ -200,7 +200,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
         this.setViewSize(bbox.x,bbox.y,bbox.width,bbox.height);
     }
   } else
-    debug.message('querySelectorAll not supported');
+    throw('querySelectorAll not supported');
 } // }}}
 
 /**
@@ -250,14 +250,20 @@ net.Net.prototype.addImportExportControls = function () { // {{{
       // TODO: clean up!
       var pnml = null;
       debug.message('importing PNML file '+importSelector.value);
-      if (importSelector.files
-         && !navigator.appVersion.match(/Safari/)) { // use File API, if present
+      if (importSelector.files // use File API, if present and useable
+         && !navigator.appName.match(/Opera/)        // not useable
+         && !navigator.appVersion.match(/Safari/)) { // not useable
         debug.message('File API available');
-        var file = importSelector.files.item(0);
+        var file = importSelector.files.item ? importSelector.files.item(0)
+/* TODO: re-check this */                    : importSelector.files.item[0]; // opera 11.50
         if (file) {
-          // TODO: safari 5.0 can't do anything with the file here?
+          // TODO: safari 5.0 and opera 11.50 can't do anything with the file here?
           //       workaround: use XHR route for now
-          var contents = file.getAsText(null);
+          var contents = null; // file.getAsText(null);
+          var reader = new FileReader();
+          reader.onload = function(evt) { contents = evt.target.result; };
+          reader.readAsText(file);
+          // TODO: synchronize read!
           debug.messagePre(contents);
           if (DOMParser) {
             var parser = new DOMParser();
@@ -273,7 +279,9 @@ net.Net.prototype.addImportExportControls = function () { // {{{
           debug.message('(useable portion of) filename is: '+filename);
           debug.message('(note: local filenames should be written as _relative_ paths with _forward_ slashes)');
           debug.message('falling back to XMLHttpRequest');
-          var xhr = new XMLHttpRequest(); // browser-specific, ok in opera/firefox
+          var xhr = ((typeof ActiveXObject!=="undefined")
+                    && new ActiveXObject("Microsoft.XMLHTTP")) // prefer in IE, for local access:-(
+                  || new XMLHttpRequest(); // browser-specific, ok in opera/firefox
           try {
             xhr.open('GET',filename,false);
             xhr.send(null);
@@ -281,7 +289,17 @@ net.Net.prototype.addImportExportControls = function () { // {{{
             debug.message('unable to import PNML file: ');
             debug.messagePre(e.toString());
           }
-          var pnml = xhr.responseXML;
+          var pnml = null;
+          if (xhr.responseText && 
+              (!xhr.responseXML || xhr.responseXML && !xhr.responseXML.documentElement)) {
+            // TODO: why do we end up here with IE9?
+            if (DOMParser) {
+              var parser = new DOMParser();
+              var pnml   = parser.parseFromString(xhr.responseText,'text/xml');
+            } else
+              debug.message('sorry, cannot interpret XML data');
+          } else
+            var pnml = xhr.responseXML;
           // listProperties('xhr',xhr,/./,true);
         } else
           debug.message('sorry, no file name specified');
@@ -296,8 +314,8 @@ net.Net.prototype.addImportExportControls = function () { // {{{
         try { net.fromPNML(pnml) }
         catch (e) {
           debug.message('PNML document could not be interpreted (is the filename correct?):');
-          debug.messagePre(e.toString());
-          debug.messagePre(listXML('',pnml).join("\n"));
+          debug.messagePre('Exception: '+e.toString());
+          debug.messagePre(debug.listXML('',pnml).join("\n"));
         }
       } else
         debug.message('no PNML file loaded');
@@ -310,6 +328,7 @@ net.Net.prototype.addImportExportControls = function () { // {{{
   //       - unlike opera, firefox doesn't seem to give us control of where to
   //         save, and under what name (everything goes in the download folder,
   //         with automatically generated names)
+  //       - try window.open, to give ie users something to save?
   //       - apart from different attribute order, safari 5.0 seems to be missing join marker?
   var exportSVG = utils.element('input'
                                ,{"type" : 'button'
@@ -326,7 +345,7 @@ net.Net.prototype.addImportExportControls = function () { // {{{
       svgOut.removeChild(svgOut.querySelector('#netHelp'));
       // TODO: should we use DOM3 Load and Save / XMLSerializer / toXMLString instead?
       //        or the DOM tree walkers? otherwise, move listXML from debug to utils
-      var xml = listXML('',svgOut).join("\n");
+      var xml = debug.listXML('',svgOut).join("\n");
       debug.messagePre(xml);
       delete svgOut;
       // location = 'data:image/svg+xml,'+encodeURIComponent(xml);

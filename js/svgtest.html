@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" 
+      xmlns:svg="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<head>
+
+<style type="text/css">
+.arc:hover   { stroke: blue }
+#svg         { float: left }
+div#messages { clear: both; margin: 10px; border: solid 1px blue; 
+               height: 10em; overflow: scroll }
+</style>
+
+<script type="text/javascript">
+/**
+ * minimalistic check for unwanted extensions/global variables,
+ * example usage:
+ *
+ * var before = checkpoint(window);
+ * ..do stuff..
+ * window.console.log(checkpoint(window,before));
+ * 
+ * @param obj
+ * @param before
+ */
+function checkpoint(obj,before) {
+  function elements(obj) {
+    var elems = [];
+    for (var x in obj) elems.push(x);
+    return elems;
+  }
+  if (before) {
+    function newElement(x) {
+      return before.indexOf(x)===-1;
+    }
+    return elements(obj).filter(newElement);
+  } else
+    return elements(obj);
+}
+var before = checkpoint(window);
+</script>
+
+<script type="text/javascript" src="modules.js"/>
+<!--
+<script type="text/javascript" src="packaged.js"/>
+-->
+
+</head>
+
+<body>
+<div id='messages'></div>
+
+<script type="text/javascript">
+
+/* TODO: support packageModules again, in updated modules.js
+
+module('package',['debug.js','net-import-export.js'],function(debug,net) {
+  packaged = packageModules(['main','package']);
+  debug.messagePre(packaged);
+});
+*/
+
+module('main',['debug.js','net-import-export.js']
+      ,function(debug,net) {
+              
+  /* var */ a_net  = new net.Net('a_net',500,300);
+
+  var in1  = a_net.addPlace('in1' , 100, 100);
+  var in2  = a_net.addPlace('in2' , 100, 200);
+  var t1   = a_net.addTransition('t1',200,150);
+  var out1 = a_net.addPlace('out1', 300, 100);
+  var out2 = a_net.addPlace('out2', 300, 200);
+
+  var a1 = a_net.addArc(in1,t1);
+  var a2 = a_net.addArc(in2,t1);
+  var a3 = a_net.addArc(t1,out1);
+  var a4 = a_net.addArc(t1,out2);
+
+  // a_net.removeArc(a2);
+  // a_net.removePlace(out1);
+  // a_net.removeTransition(t1);
+
+  // wrap(a_net,'addArc',{before:function(s,t,m){
+  //   message('addArc: '+s+'>'+t+' : '+m.map(function(p){return p.x+'/'+p.y;}).join(','));
+  //   }});
+  // wrap(Node.prototype,'cancelListeners',{before:function(){message('cancelListeners: '+this);}});
+  // wrap(Node.prototype,'mousedownHandler',{before:function(e){message('mousedownHandler: '+this);}});
+  // wrap(Node.prototype,'mouseupHandler',{before:function(e){message('mouseupHandler: '+this);}});
+
+  document.body.insertBefore(a_net.svgDiv,document.body.firstChild);
+
+  a_net.addImportExportControls();
+  a_net.toggleHelp();
+
+  debug.messagePre(a_net.toString());
+
+  debug.messagePre(checkpoint(window,before));
+
+});
+
+</script>
+
+
+<hr>
+
+</body>
+
+</html>

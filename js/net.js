@@ -279,6 +279,7 @@ Net.prototype.addHelp = function () {
               ,'press "t" then click on background to add transitions'
               ,'press "p" then click on background to add places'
               ,'press "a" then drag from node to node to add arcs'
+              ,'          (or click on arces to add midpoints)'
               ,' '
               ,'press "m" then use mouse to move nodes or arc midpoints'
               ,'press "d" then click to delete nodes, arcs, or arc midpoints'

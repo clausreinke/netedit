@@ -1,136 +1,172 @@
-// simple module loader
+// modules.js
 //
-// provides a module construct, module loading and linking
-// 
-// TODO: rename to modules.js
+// simplistic module system with module loader, as described in
+// http://libraryinstitute.wordpress.com/2010/12/01/loading-javascript-modules/
+//
+(function () {
 
-(function (window) {
+  var modules = {}; // private record of module data
 
-var modules = []; // private record of module data
+  // don't log if there's no console
+  function log(msg) {
+    if (typeof console!=="undefined")
+      console.log(msg);
+  }
 
-/**
- * first step toward modules, a module has a name (should be
- * the module's file name), a list of imports (module file names),
- * and a function from imports to exports; the module get called/run
- * in the loading phase, via loadModule; we simply record the module 
- * data, and trigger loading of not-yet-known dependencies.
- * 
- * @param imports
- * @param mod
- */
-function module(name,imports,mod) {
-  window.console.log('loading module '+name);
-  modules[name] = {name:name, imports: imports, mod: mod};
-  for (var imp in imports) loadModule(imports[imp]);
-}
+  // modules are functions with additional information
+  function module(name,imports,mod) {
 
-// TODO: could load other resources the same way, adding CSS dependencies
-//        to the head, perhaps providing other files as string contents?
-/**
- * initiate loading a module by adding a script node with the module as
- * source. modules should use module(name,imports,module_function) as above.
- * 
- * @param mod
- */
-function loadModule(mod) {
-  if (modules[mod])
-    return;
-  else
-    modules[mod] = {};
-  var element = document.createElement('script');
-  element.setAttribute('type','text/javascript');
-  element.setAttribute('src',mod);
-  document.getElementsByTagName('head')[0].appendChild(element);
-}
+    // record module information
+    log('found module '+name);
+    modules[name] = {name:name, imports: imports, mod: mod};
+    
+    // trigger loading of import dependencies
+    for (var imp in imports) loadModule(imports[imp]);
+    
+    // check whether this was the last module to be loaded
+    // in a given dependency group
+    loadedModule(name);
+  }
 
-/**
- * Sort modules by dependencies (dependents last), returning
- * sorted list of module names.
- * 
- * @param modules
- */
-function dependency_sort(modules) {
-  var pending = [], sorted = [], been_here = {};
-  for (var name in modules) pending.push(name);
-  while (pending.length>0) {
-    var m    = pending.shift();
-    if (been_here[m] && been_here[m]<=pending.length)
-      throw("can't sort dependencies: "+sorted+" < "+m+" < "+pending);
+  // trigger module loading by adding script element
+  function loadModule(mod) {
+
+    if (modules[mod])
+      return;             // don't load the same module twice
     else
-      been_here[m] = pending.length;
-    var deps = modules[m].imports;
-    if (deps.every(function(e){return sorted.indexOf(e)!==-1;}))
-      sorted.push(m);
-    else
-      pending.push(m);
-  }
-  return sorted;
-}
+      modules[mod] = {};  // mark module as currently loading
 
-
-/**
- * assuming that the modules have been loaded/recorded in dependency
- * order, we can link and instantiate them by calling each module's
- * module function with linked variants of its imports; we do not
- * just export all the module's exports to window - to selectively
- * import and use the linked modules, just write an inline module).
- */
-function linkModules() {
-  window.console.log('linking modules');
-
-  var sortedNames   = dependency_sort(modules);
-
-  for (var nextName in sortedNames) {
-    var name    = sortedNames[nextName];
-    var module  = modules[name];
-    var imports = module.imports;
-    window.console.log('linking module '+name
-                      +', importing '+(imports.length>0?imports.join(','):'nothing'));
-    var imps = []; for (var imp in imports) imps.push(modules[imports[imp]].linked);
-    modules[name].linked = module.mod.apply(null,imps);
-  }
-}
-
-/**
- * Concatenate modules in dependency order, skipping excluded modules. If you
- * store the result in a file, you can pre-load all modules from there, avoiding
- * separate script loads. This could be combined with packing and compression.
- *
- * @param excluded
- */
-function packageModules(excluded) {
-  window.console.log('packaging modules');
-
-  var packaged      = "",
-      sortedNames   = dependency_sort(modules);
-
-  for (var nextName in sortedNames) {
-    var name    = sortedNames[nextName];
-    if (excluded.indexOf(name)!=-1) continue;
-    var module  = modules[name];
-    var imports = module.imports;
-    window.console.log('packaging module '+name
-                      +', importing '+(imports.length>0?imports.join(','):'nothing'));
-    var imps = []; for (var imp in imports) imps.push(modules[imports[imp]].linked);
-    packaged += "module('"+name+"',["
-                       +imports.map(function(e){return "'"+e+"'"}).join(",")+"],"
-                       +module.mod+");";
+    // add a script element to document head, with module as src
+    var element = document.createElement('script');
+    element.setAttribute('type','text/javascript');
+    element.setAttribute('src',mod);
+    document.getElementsByTagName('head')[0].appendChild(element);
+    
+    // no longer keep record of loading order
+    // order.push(mod);
+    
   }
 
-  return packaged;
-}
+  // check whether this was the last module to be loaded
+  // in a given dependency group;
+  // if yes, start linking and running modules
+  function loadedModule(mod) {
+    log('finished loading: '+mod);
 
-// export only the module and packageModules functions (to load modules, just
-// write an inline module with those modules as dependencies); implicitly
-// call linkModules after all modules are ready (this also means that all
-// modules need to be in the head)
-window.module         = module;
-window.packageModules = packageModules;
-window.addEventListener('load',linkModules,false);
+    // collect modules marked as currently loading
+    var pending=[];
+    for (var m in modules)
+      if (!modules[m].name) pending.push(m);
 
-  // calling linkModules here wouldn't work, as loadModule only adds the
-  // script element that initiates the download, asynchronously!
-  // instead call linkModules in body.onload.
+    // if no more modules need to be loaded, we can start 
+    // linking the modules together
+    if (pending.length===0) {
+      log('all done loading');
+      linkModules();
+    } else {
+      log('loads pending: '+pending.join(', '));
+    }
+  }
 
-})(window);
+  // Sort modules by dependencies (dependents last),
+  // returning sorted list of module names.
+  function dependency_sort(modules) {
+
+    var pending = [],   // modules remaining to be sorted
+        sorted = [],    // modules already sorted
+        been_here = {}; // remember length of pending list for each module 
+                        // (if we revisit a module without pending
+                        //  getting any shorter, we are stuck in a loop)
+
+    // preparation: linked modules do not need to be sorted,
+    //              all others go into pending
+    for (var name in modules)
+      if (modules[name].linked)
+        sorted.push(name);  // allready linked by a previous run
+      else
+        pending.push(name); // sort for linking (after its dependencies)
+
+    // has mod been sorted already?
+    function issorted(mod){
+      var result = false;
+      for (var s in sorted) result = result || (sorted[s]===mod);
+      return result;
+    }
+
+    // have all dependencies deps been sorted already?
+    function aresorted(deps){
+      var result = true;
+      for (var d in deps) result = result && (issorted(deps[d]));
+      return result;
+    }
+
+    // repeat while there are modules pending
+    while (pending.length>0) {
+
+      // consider the next pending module
+      var m = pending.shift();
+
+      // if we've been here and have not made any progress, we are looping
+      // (no support for cyclic module dependencies)
+      if (been_here[m] && been_here[m]<=pending.length)
+        throw("can't sort dependencies: "+sorted+" < "+m+" < "+pending);
+      else
+        been_here[m] = pending.length;
+
+      // consider the current module's import dependencies
+      var deps = modules[m].imports;
+      if (aresorted(deps))
+        sorted.push(m);  // dependencies done; module done
+      else
+        pending.push(m); // some dependencies still pending;
+                         // revisit module later
+    }
+
+    return sorted;
+  }
+
+  // link and run loaded modules, keep record of results
+  function linkModules() {
+    log('linking modules');
+    
+    // sort modules in dependency order
+    var sortedNames = dependency_sort(modules);
+
+    // link modules in dependency order
+    for (var nextName in sortedNames) {
+      var name    = sortedNames[nextName];
+    
+      var module  = modules[name];
+      var imports = module.imports;
+
+      if (module.linked) {
+        log('already linked '+name);
+        continue;
+      } 
+      log('linking module '+name);
+
+      // collect import dependencies
+      var deps = []; 
+      for (var i in imports)
+        deps.push(modules[imports[i]].linked);
+
+      // execute module code, pass imports, record exports
+      modules[name].linked = module.mod.apply(null,deps);
+    }
+  }
+
+  // export module wrapper
+  window.module = module;
+
+  // just calling linkModules here would not work, as we have only 
+  // added the script elements, the scripts could still be loading;
+
+  // calling linkModules in document onload would not work
+  // in browsers which do not stop parsing while script-inserted
+  // external scripts are loading;
+
+  // therefore, we call linkModules when all modules in a dependency
+  // group have been loaded, as checked by loadedModule;
+
+})()
 
