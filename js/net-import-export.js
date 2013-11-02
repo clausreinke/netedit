@@ -193,7 +193,7 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
                     //       there is no useable bounding box either..
       var bbox = this.contents.getBBox(); // TODO: why isn't this tight in opera 10.10?
       debug.message('** (min/max) '+px+' '+py+' '+dx+' '+dy);
-      listProperties('contents.BBox',bbox);
+      debug.listProperties('contents.BBox',bbox);
       if (false&&navigator.appName.match(/Opera/)) // TODO: bounding box bug fixed in 10.51?
         this.setViewSize(px,py,dx+10,dy+10);
       else
@@ -225,9 +225,10 @@ net.Net.prototype.addImportExportControls = function () { // {{{
                                      });
   var importForm     = utils.element('form'
                                     ,{'action':'#'
-                                     ,'style' :'display: inline'}
+                                     ,'style' :'display: inline; margin-left: 10px'}
                                     ,[importButton,importSelector]);
   importForm.addEventListener('submit',function(event){
+      event.preventDefault();
       // grr; while it is easy to import files in the current directory, things
       // get difficult if one likes to organize one's file in a pnml/
       // subdirectory: file selectors only give fake_path + file name, no
@@ -249,10 +250,28 @@ net.Net.prototype.addImportExportControls = function () { // {{{
       // widget/elevated-permissions modes)
       // TODO: clean up!
       var pnml = null;
+      function processPNML(pnml) {
+        if (pnml) {
+          // TODO: is there a way to determine whether the load was successful?
+          //       it seems we can get back a non-null but useless responseXML
+          //       if the filename wasn't valid, and the status doesn't seem
+          //       helpful for local files (when there was no webserver involved)?
+          net.removeAll();
+          try { net.fromPNML(pnml) }
+          catch (e) {
+            debug.message('PNML document could not be interpreted (is the filename correct?):');
+            debug.messagePre('Exception: '+e.toString());
+            debug.messagePre(debug.listXML('',pnml).join("\n"));
+          }
+        } else
+          debug.message('no PNML file loaded');
+      }
+
       debug.message('importing PNML file '+importSelector.value);
       if (importSelector.files // use File API, if present and useable
-         && !navigator.appName.match(/Opera/)        // not useable
-         && !navigator.appVersion.match(/Safari/)) { // not useable
+         // && !navigator.appName.match(/Opera/)        // not useable
+         // && !navigator.appVersion.match(/Safari/)    // not useable
+         ) {
         debug.message('File API available');
         var file = importSelector.files.item ? importSelector.files.item(0)
 /* TODO: re-check this */                    : importSelector.files.item[0]; // opera 11.50
@@ -261,15 +280,19 @@ net.Net.prototype.addImportExportControls = function () { // {{{
           //       workaround: use XHR route for now
           var contents = null; // file.getAsText(null);
           var reader = new FileReader();
-          reader.onload = function(evt) { contents = evt.target.result; };
+          reader.onerror = function(evt) { console.log("read error"); debug.listProperties("reader",evt); };
+          reader.onload = function(evt) {
+            console.log("read done");
+            contents = evt.target.result;
+            debug.messagePre(contents);
+            if (DOMParser) {
+              var parser = new DOMParser();
+              var pnml   = parser.parseFromString(contents,'text/xml');
+              processPNML(pnml);
+            } else
+              debug.message('sorry, cannot find DOMParser');
+          };
           reader.readAsText(file);
-          // TODO: synchronize read!
-          debug.messagePre(contents);
-          if (DOMParser) {
-            var parser = new DOMParser();
-            var pnml   = parser.parseFromString(contents,'text/xml');
-          } else
-            debug.message('sorry, cannot find DOMParser');
         } else {
           debug.message('sorry, no file name specified');
         }
@@ -301,25 +324,11 @@ net.Net.prototype.addImportExportControls = function () { // {{{
           } else
             var pnml = xhr.responseXML;
           // listProperties('xhr',xhr,/./,true);
+          processPNML(pnml);
         } else
           debug.message('sorry, no file name specified');
       } else
         debug.message('unable to import PNML file');
-      if (pnml) {
-        // TODO: is there a way to determine whether the load was successful?
-        //       it seems we can get back a non-null but useless responseXML
-        //       if the filename wasn't valid, and the status doesn't seem
-        //       helpful for local files (when there was no webserver involved)?
-        net.removeAll();
-        try { net.fromPNML(pnml) }
-        catch (e) {
-          debug.message('PNML document could not be interpreted (is the filename correct?):');
-          debug.messagePre('Exception: '+e.toString());
-          debug.messagePre(debug.listXML('',pnml).join("\n"));
-        }
-      } else
-        debug.message('no PNML file loaded');
-      event.preventDefault();
       return false;
     },false);
 
@@ -379,10 +388,10 @@ net.Net.prototype.addImportExportControls = function () { // {{{
   //       better layout control
   var messageField = utils.element('div',{"id":'messageField'});
 
-  var importExportGroup = utils.element('div'
+  var importExportGroup = utils.element('span'
                                        ,{"id":'importExportGroup'}
                                        ,[importForm,exportSVG,exportPNML,messageField]);
-  this.svgDiv.insertBefore(importExportGroup,this.svg);
+  this.netDiv.insertBefore(importExportGroup,this.svgDiv);
 } // }}}
 
 return { Net: net.Net

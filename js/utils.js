@@ -8,6 +8,11 @@ module("utils.js",[],function(){
 
 var svgNS = 'http://www.w3.org/2000/svg';
 
+// TODO: touchcancel? "real" pointer events spec?
+var pointerEvents = ('ontouchstart' in window)
+  ? {start : 'touchstart', move: 'touchmove', end: 'touchend' }
+  : {start : 'mousedown', move: 'mousemove', end: 'mouseup' }
+
 /**
  * bind function 'this'-reference (mostly so that we can register 
  * model object methods as view object event listeners, with
@@ -69,5 +74,6 @@ return { svgNS:           svgNS
        , element:         element
        , elementNS:       elementNS
        , setAttributesNS: setAttributesNS
+       , pointerEvents:   pointerEvents
        };
 });

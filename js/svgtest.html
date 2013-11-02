@@ -41,9 +41,9 @@ function checkpoint(obj,before) {
 var before = checkpoint(window);
 </script>
 
-<script type="text/javascript" src="modules.js"/>
+<script type="text/javascript" src="modules.js"></script>
 <!--
-<script type="text/javascript" src="packaged.js"/>
+<script type="text/javascript" src="packaged.js"></script>
 -->
 
 </head>
@@ -88,7 +88,7 @@ module('main',['debug.js','net-import-export.js']
   // wrap(Node.prototype,'mousedownHandler',{before:function(e){message('mousedownHandler: '+this);}});
   // wrap(Node.prototype,'mouseupHandler',{before:function(e){message('mouseupHandler: '+this);}});
 
-  document.body.insertBefore(a_net.svgDiv,document.body.firstChild);
+  document.body.insertBefore(a_net.netDiv,document.body.firstChild);
 
   a_net.addImportExportControls();
   a_net.toggleHelp();
@@ -96,6 +96,9 @@ module('main',['debug.js','net-import-export.js']
   debug.messagePre(a_net.toString());
 
   debug.messagePre(checkpoint(window,before));
+
+  debug.messagePre("touchstart "+('ontouchstart' in window));
+  debug.messagePre("mousedown "+('onmousedown' in window));
 
 });
 

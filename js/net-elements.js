@@ -68,6 +68,8 @@ Node.prototype.rename = function(event) {
  * @param event
  */
 Node.prototype.mousedownHandler = function(event) {
+  event.preventDefault();
+  debug.messagePre("Node.mousedown");
   if (this.net.selection) return true; // don't add second set of event handlers
   if (this.net.cursor.mode==='m') {
     this.net.selection = this;
@@ -81,19 +83,20 @@ Node.prototype.mousedownHandler = function(event) {
                                   ,this.net.contents.firstChild.nextSibling);
     var action = this.newArcHandler;
   } else
-    return true;
+    return false;
   // need to keep references to dynamically constructed listeners,
   // or removeEventListener wouldn't work
-  this.listeners = { 'mousemove' : utils.bind(action,this)
-                   , 'mouseup'   : utils.bind(this.mouseupHandler,this)
+  debug.messagePre(action.name);
+  this.listeners = { 'move' : utils.bind(action,this)
+                   , 'end'  : utils.bind(this.mouseupHandler,this)
                    }
   // redirect whole-svg events 
   // if mouse is faster than rendering, events might otherwise miss small shapes
   for (var l in this.listeners) 
     // safari 5.0 won't listen to events on svg
     // this.net.svg.addEventListener(l,this.listeners[l],false);
-    this.net.svgDiv.addEventListener(l,this.listeners[l],false);
-  return true;
+    this.net.svgDiv.addEventListener(utils.pointerEvents[l],this.listeners[l],false);
+  return false;
 }
 
 /**
@@ -102,13 +105,16 @@ Node.prototype.mousedownHandler = function(event) {
  * @param event
  */
 Node.prototype.mousemoveHandler = function(event) {
+  event.preventDefault();
+  debug.messagePre("Node.mousemove");
   var p = this.net.client2canvas(event);
   // debug.message(this.nodeType+'.mousemoveHandler '+p);
+  // debug.listProperties("event.",event);
   this.pos = new vector.Pos(p.x,p.y);
   this.updateView();
   for (var ain in this.arcsIn) this.arcsIn[ain].updateView();
   for (var aout in this.arcsOut) this.arcsOut[aout].updateView();
-  return true;
+  return false;
 }
 
 /**
@@ -117,18 +123,24 @@ Node.prototype.mousemoveHandler = function(event) {
  * @param event
  */
 Node.prototype.newArcHandler = function(event) {
+  event.preventDefault();
   // var p = this.net.client2canvas(event);
   // debug.message(this.nodeType+'.newArcHandler '+p);
   this.net.selection.updateView();
-  return true;
+  return false;
 }
 
 /**
- * event handler: complete partially constructed arc if node is valid target
+ * event handler: 
+ *  - mode 'a': complete partially constructed arc if node is valid target
+ *  - mode 'd': delete node
+ *  - otherwise: cancel temporary listeners
  *  
  * @param event
  */
 Node.prototype.mouseupHandler = function(event) {
+  event.preventDefault();
+  debug.messagePre("Node.mouseup");
   if ((this.net.cursor.mode==='a')
     &&(this.net.selection instanceof Arc)) {
     if (!(this.net.selection.source instanceof this.constructor)) {
@@ -143,11 +155,17 @@ Node.prototype.mouseupHandler = function(event) {
       this.net.selection.insertPoint(pos);
       this.net.selection.updateView();
     }
+  } else if (this.net.cursor.mode==='d') {
+    if (this instanceof Place) {
+      this.net.removePlace(this);
+    } else {
+      this.net.removeTransition(this);
+    }
   } else {
     this.cancelListeners();
     this.net.selection = null;
   }
-  return true;
+  return false;
 }
 
 /**
@@ -157,7 +175,7 @@ Node.prototype.cancelListeners = function() {
   for (var l in this.listeners) 
     // safari 5.0 won't listen to events on svg
     // this.net.svg.removeEventListener(l,this.listeners[l],false);
-    this.net.svgDiv.removeEventListener(l,this.listeners[l],false);
+    this.net.svgDiv.removeEventListener(utils.pointerEvents[l],this.listeners[l],false);
   this.listeners = {};
 }
 
@@ -219,9 +237,8 @@ Place.prototype.addView = function () {
   //       other elements:-(
   // TODO: filter/translate to get valid/unique ids only!
   this.p = this.placeShape(this.id,this.pos.x,this.pos.y,this.r);
-  this.p.addEventListener('click',utils.bind(this.clickHandler,this),false);
-  this.p.addEventListener('mousedown',utils.bind(this.mousedownHandler,this),false);
-  this.p.addEventListener('mouseup',utils.bind(this.mouseupHandler,this),false);
+  this.p.addEventListener(utils.pointerEvents.start,utils.bind(this.mousedownHandler,this),false);
+  this.p.addEventListener(utils.pointerEvents.end,utils.bind(this.mouseupHandler,this),false);
   this.addLabel(this.pos.x+this.r,this.pos.y+this.r);
 }
 
@@ -269,27 +286,19 @@ Place.prototype.connectorFor = function(pos) {
   return this.pos.add(vec.scale(this.r/l));
 }
 
-// TODO: can these three handlers move to Node?
+// TODO: can these handlers move to Node?
 //        (need to generalize view handling and removal)
-/**
- * event handler: in deletion mode, remove Place from host net
- *  
- * @param event
- */
-Place.prototype.clickHandler = function(event) {
-  if (this.net.cursor.mode==='d') this.net.removePlace(this);
-  return true;
-}
 /**
  * event handler: visually highlight Place, then delegate to Node
  *  
  * @param event
  */
 Place.prototype.mousedownHandler = function(event) {
+  event.preventDefault();
   this.p.setAttributeNS(null,'stroke','green'); 
     // TODO: - have a 'selected' CSS class for this?
     //       - generically change rendering, move code to Node()
-  Node.prototype.mousedownHandler.call(this,event);
+  return Node.prototype.mousedownHandler.call(this,event);
 }
 /**
  * event handler: cancel Place highlighting, then delegate to Node
@@ -298,7 +307,7 @@ Place.prototype.mousedownHandler = function(event) {
  */
 Place.prototype.mouseupHandler = function(event) {
   this.p.setAttributeNS(null,'stroke','black');
-  Node.prototype.mouseupHandler.call(this,event);
+  return Node.prototype.mouseupHandler.call(this,event);
 }
 
 // ----------------------------- }}}
@@ -344,9 +353,8 @@ Transition.prototype.addView = function () {
   // TODO: filter/translate to get valid/unique ids only!
   this.t = this.transitionShape(this.id,this.pos.x,this.pos.y
                                        ,this.width,this.height);
-  this.t.addEventListener('click',utils.bind(this.clickHandler,this),false);
-  this.t.addEventListener('mousedown',utils.bind(this.mousedownHandler,this),false);
-  this.t.addEventListener('mouseup',utils.bind(this.mouseupHandler,this),false);
+  this.t.addEventListener(utils.pointerEvents.start,utils.bind(this.mousedownHandler,this),false);
+  this.t.addEventListener(utils.pointerEvents.end,utils.bind(this.mouseupHandler,this),false);
   this.addLabel(this.pos.x+0.6*this.width,this.pos.y+0.5*this.height);
 }
 
@@ -411,26 +419,18 @@ Transition.prototype.connectorFor = function(pos) {
              : new vector.Pos(x,y-h));
 }
 
-// TODO: can these three handlers move to Node? (very similar to Place handlers)
+// TODO: can these handlers move to Node? (very similar to Place handlers)
 //        (need to generalize view handling and removal)
 // TODO: slim shapes are hard to hit, perhaps add a transparent halo?
-/**
- * event handler: in deletion mode, remove Transition from host net
- *  
- * @param event
- */
-Transition.prototype.clickHandler = function(event) {
-  if (this.net.cursor.mode==='d') this.net.removeTransition(this);
-  return true;
-}
 /**
  * event handler: visually highlight Transition, then delegate to Node
  * 
  * @param event
  */
 Transition.prototype.mousedownHandler = function(event) {
+  event.preventDefault();
   this.t.setAttributeNS(null,'stroke','green');
-  Node.prototype.mousedownHandler.call(this,event);
+  return Node.prototype.mousedownHandler.call(this,event);
 }
 /**
  * event handler: cancel Transition highlighting, then delegate to Node
@@ -439,7 +439,7 @@ Transition.prototype.mousedownHandler = function(event) {
  */
 Transition.prototype.mouseupHandler = function(event) {
   this.t.setAttributeNS(null,'stroke','black');
-  Node.prototype.mouseupHandler.call(this,event);
+  return Node.prototype.mouseupHandler.call(this,event);
 }
 
 // ----------------------------- }}}
@@ -483,7 +483,7 @@ Arc.prototype.addView = function() {
                            ,'marker-end':'url(#Arrow)'
                            });
   this.a.addEventListener('click',utils.bind(this.clickHandler,this),false);
-  this.a.addEventListener('mousedown',utils.bind(this.mousedownHandler,this),false);
+  this.a.addEventListener(utils.pointerEvents.start,utils.bind(this.mousedownHandler,this),false);
 }
 
 /**
@@ -573,6 +573,8 @@ Arc.prototype.findPointIndex = function(pos) {
  * @param event
  */
 Arc.prototype.clickHandler = function(event) {
+  event.preventDefault();
+  debug.messagePre("Arc.clickHandler");
   // debug.message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
   var p = this.source.net.client2canvas(event);
   var pos = new vector.Pos(p.x,p.y);
@@ -587,7 +589,7 @@ Arc.prototype.clickHandler = function(event) {
     this.insertPoint(pos);
     this.updateView();
   }
-  return true;
+  return false;
 }
 
 /**
@@ -596,6 +598,7 @@ Arc.prototype.clickHandler = function(event) {
  * @param event
  */
 Arc.prototype.mousedownHandler = function(event) {
+  event.preventDefault();
   var p = this.source.net.client2canvas(event);
   var pos = new vector.Pos(p.x,p.y);
   if (this.source.net.cursor.mode==='m') {
@@ -609,18 +612,18 @@ Arc.prototype.mousedownHandler = function(event) {
       this.movedPoint    = this.midpoints[i];
       // need to keep references to dynamically constructed listeners,
       // or removeEventListener wouldn't work
-      this.listeners = { 'mousemove' : utils.bind(this.mousemoveHandler,this)
-                       , 'mouseup'   : utils.bind(this.mouseupHandler,this)
+      this.listeners = { 'move' : utils.bind(this.mousemoveHandler,this)
+                       , 'end'  : utils.bind(this.mouseupHandler,this)
                        }
       // redirect whole-svg events 
       // if mouse is faster than rendering, events might otherwise miss small shapes
       for (var l in this.listeners) 
         // safari 5.0 won't listen to events on svg
         // this.source.net.svg.addEventListener(l,this.listeners[l],false);
-        this.source.net.svgDiv.addEventListener(l,this.listeners[l],false);
+        this.source.net.svgDiv.addEventListener(utils.pointerEvents[l],this.listeners[l],false);
     }
   }
-  return true;
+  return false;
 }
 
 /**
@@ -629,11 +632,12 @@ Arc.prototype.mousedownHandler = function(event) {
  * @param event
  */
 Arc.prototype.mousemoveHandler = function(event) {
+  event.preventDefault();
   var p = this.source.net.client2canvas(event);
   this.movedPoint.x = p.x; 
   this.movedPoint.y = p.y; 
   this.updateView();
-  return true;
+  return false;
 }
 
 /**
@@ -642,6 +646,7 @@ Arc.prototype.mousemoveHandler = function(event) {
  * @param event
  */
 Arc.prototype.mouseupHandler = function(event) {
+  event.preventDefault();
   this.a.setAttributeNS(null,'stroke','black'); 
   for (var l in this.listeners) 
     // safari 5.0 won't listen to events on svg
@@ -650,6 +655,7 @@ Arc.prototype.mouseupHandler = function(event) {
   this.listeners = {};
   this.source.net.selection = null;
   this.movedPoint = null;
+  return false;
 }
 
 // ----------------------------- }}}

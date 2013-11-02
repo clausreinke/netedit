@@ -7,8 +7,8 @@
 // dependency: net-elements.js
 // dependency: utils.js
 
-module("net.js",["vector.js","net-elements.js","utils.js"]
-      ,function(vector,elements,utils) {
+module("net.js",["vector.js","net-elements.js","utils.js","debug.js"]
+      ,function(vector,elements,utils,debug) {
 
 // ----------------------------- Cursor {{{
 
@@ -134,6 +134,9 @@ Cursor.prototype.updatePos = function(p) {
 function Net(id,width,height) {
 
   this.id     = id;
+  this.netDiv = document.createElement('div');
+  this.netDiv.id = 'netDiv';
+  this.netDiv.setAttribute('style','margin: 10px; background: lightgrey');
   this.svgDiv = document.createElement('div');
   this.svgDiv.id = 'svgDiv';
   this.svgDiv.setAttribute('style','margin: 10px; background: lightgrey');
@@ -144,6 +147,31 @@ function Net(id,width,height) {
                                 });
   this.svg.id = id;
   this.svgDiv.appendChild(this.svg);
+  this.netDiv.appendChild(this.svgDiv);
+
+  this.modeSelector = utils.element('select'
+                                   ,{}
+                                   ,[utils.element('option',{'value':'?'}
+                                                  ,[document.createTextNode('help')])
+                                    ,utils.element('option',{'value':'t'}
+                                                  ,[document.createTextNode('transition')])
+                                    ,utils.element('option',{'value':'p'}
+                                                  ,[document.createTextNode('place')])
+                                    ,utils.element('option',{'value':'a'}
+                                                  ,[document.createTextNode('arc')])
+                                    ,utils.element('option',{'value':'m'}
+                                                  ,[document.createTextNode('move')])
+                                    ,utils.element('option',{'value':'d'}
+                                                  ,[document.createTextNode('delete')])
+                                    ]);
+  this.modeSelector.addEventListener('change'
+                                    ,function(e){
+                                      this.cursor.mode = this.modeSelector.options[this.modeSelector.selectedIndex].value;
+                                      console.log(this.cursor.mode);
+                                      return this.modeHandler(this.cursor.mode);
+                                     }.bind(this)
+                                    ,false);
+  this.netDiv.insertBefore(this.modeSelector,this.svgDiv);
 
   // opera doesn't register mousemove events where there is no svg content,
   // so we provide a dummy backdrop (this doesn't seem needed in firefox?)
@@ -173,8 +201,15 @@ function Net(id,width,height) {
   // opera 10.51: ok; firefox 3.6.10: ok; safari 5.0: no
   // this.svg.addEventListener('click',utils.bind(this.clickHandler,this),false);
   // this.svg.addEventListener('mousemove',utils.bind(this.mousemoveHandler,this),false);
-  this.svgDiv.addEventListener('click',utils.bind(this.clickHandler,this),false);
-  this.svgDiv.addEventListener('mousemove',utils.bind(this.mousemoveHandler,this),false);
+  this.svgDiv.addEventListener(utils.pointerEvents.start,utils.bind(this.clickHandler,this),false);
+  this.svgDiv.addEventListener(utils.pointerEvents.move,utils.bind(this.mousemoveHandler,this),false);
+  this.svgDiv.addEventListener(utils.pointerEvents.end
+                              ,function(event){
+                                event.preventDefault();
+                                debug.messagePre("Net.mouseup");
+                                return this.modeHandler(this.cursor.mode)
+                               }.bind(this)
+                              ,false);
 
   // can't listen for keypress on svg only?
   // opera 10.51: ok; firefox 3.6.2: no
@@ -350,7 +385,11 @@ Net.prototype.addDefs = function () {
 Net.prototype.client2canvas = function (event) {
   var ctm = this.svg.getScreenCTM();
   var p = this.svg.createSVGPoint();
-  p.x = event.clientX; p.y = event.clientY;
+  if (event.touches) {
+    p.x = event.touches[0].clientX; p.y = event.touches[0].clientY;
+  } else {
+    p.x = event.clientX; p.y = event.clientY;
+  }
   return p.matrixTransform(ctm.inverse());
 }
 
@@ -361,6 +400,9 @@ Net.prototype.client2canvas = function (event) {
  * @param event
  */
 Net.prototype.clickHandler = function (event) {
+  if (!event.target instanceof HTMLSelectElement)
+    event.preventDefault();
+  debug.messagePre("Net.clickHandler");
   // message('Net.clickHandler '+this.cursor.mode);
   var p = this.client2canvas(event);
   if (this.cursor.mode=='p') {
@@ -373,7 +415,7 @@ Net.prototype.clickHandler = function (event) {
     if (name!=null) this.addTransition(name,p.x,p.y)
   } else
     ; // message('net.click: '+p.x+'/'+p.y);
-  return true;
+  return false;
 }
 
 /**
@@ -501,7 +543,10 @@ Net.prototype.keypressHandler = function (event) {
   var key = event.charCode || event.keyCode;
   this.cursor.mode = String.fromCharCode(key);
   // message('Net.keypressHandler '+this.cursor.mode+' '+event.charCode+'/'+event.keyCode);
+  return this.modeHandler(this.cursor.mode);
+}
 
+Net.prototype.modeHandler = function (mode) {
   // '\esc' should cancel anything in progress, leaving neutral state,
   // other keys should first enter neutral state, then set new cursor mode
   // TODO: safari 5.0 doesn't listen to \esc; workaround: use other unused key for now
@@ -519,7 +564,7 @@ Net.prototype.keypressHandler = function (event) {
     this.selection = null;
   }
 
-  switch (this.cursor.mode) {
+  switch (mode) {
     case 't': this.cursor.transitionCursor(); break;
     case 'p': this.cursor.placeCursor(); break;
     case 'm': this.cursor.moveCursor(); break;
@@ -530,7 +575,7 @@ Net.prototype.keypressHandler = function (event) {
   // event.preventDefault(); // how to do this only inside svg?  would it help
                              // to wrap the svg in a div and use that?
   // message('Net.keypressHandler event.target: '+event.target.nodeName);
-  return true;
+  return false;
 }
 
 /**
@@ -539,11 +584,13 @@ Net.prototype.keypressHandler = function (event) {
  * @param event
  */
 Net.prototype.mousemoveHandler = function (event) {
+  event.preventDefault();
+  debug.messagePre("Net.mousemoveHandler");
   var p = this.client2canvas(event);
   // message('Net.mousemoveHandler '+p.x+'/'+p.y);
   // document.getElementById('messageField').innerHTML=p.x+'/'+p.y;
   this.cursor.updatePos(p);
-  return true;
+  return false;
 }
 
 // ----------------------------- }}}

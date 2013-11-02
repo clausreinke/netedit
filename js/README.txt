@@ -12,13 +12,11 @@ Author           : Claus Reinke <claus.reinke@talk21.com>
 
 PLEASE NOTE: this code is not in release state - it was partly a means for
              me to learn about writing an interactive SVG/in-browser
-             application, partly a feasibility study. I've just converted my old
-             darcs repo to git, to make it easier to access.  A quick status
-             check (see below) shows that the new IE9 has fitted right in to the
-             APIs I coded against, which is nice, but all the browsers,
-             including those I originally tested with, no longer run the full
-             code as they used to (hopefully just minor API evolution, but still
-             disappointing, after less than a year).
+             application, partly a feasibility study. I converted my old
+             darcs repo to git, to make it easier to access. A quick status
+             check (see below) shows that modern browsers have fitted right in
+             to the APIs I coded against, which is nice, though some features
+             still need modifications for mobile/touch use.
 
              I plan to fix the features gone missing, so that the editor will be
              basic but useable once again, but have not yet decided how take
@@ -30,25 +28,44 @@ PLEASE NOTE: this code is not in release state - it was partly a means for
              Feel free to play with it, don't blame me for anything, let
              me know if you find it useful, and please do not re-distribute!
 
------------------ Status check (27.06.2011): sad state of affairs..
+----------------- Status check (after small fixes, 01.11.2013):
 
-  Opera 11.50
-    import doesn't work (XMLHttpRequest gives empty results, no error messages;
-      apparently, that is a security setting:
-        opera:config->User Prefs->Allow File XMLHttpRequest
-      is off by default; toggling to on makes import work)
+desktop (windows)
 
-  Firefox 5.0
-    keyboard events stop working after first t/p
-    doesn't embed svg in html
+  Firefox 24.0
+    okay?
 
-  Safari 5.0
-    fickle event recognition
+  Opera 12.16
+    okay?
 
-  IE 9
-    arrow heads aren't filled
+  Google Chrome Version 30.0.1599.69 m
+    okay?
+
+  IE 10
+    arrow heads aren't filled; arrow drawing occasionally buggy
     export doesn't work (tries to open data url, no option to save?)
-    doesn't embed svg in html
+
+mobile (android)
+
+  Chrome 29.0.1547.72
+    nodes are created immediately (can't move pointer without creating)
+    arc connection needs extra tap on target
+    arc midpoints can't be created
+    arcs can't be deleted
+    loading PNML fails
+
+  Firefox 25.0
+    nodes are created immediately (can't move pointer without creating)
+    arc connection needs extra tap on target
+    arc midpoints can't be created
+    arcs can't be deleted
+    
+  Opera 12.10
+    nodes are created immediately (can't move pointer without creating)
+    arc connection needs extra tap on target
+    arc midpoints can't be created
+    arcs can't be deleted
+    svgDiv is highlighted on every touch
 
 ----------------- Files (see svgtest.xhtml for an example instantiation):
 
