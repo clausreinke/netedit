@@ -184,6 +184,7 @@ function listXML(prefix,xml) { // {{{
   else {
     var tag      = '<'+xml.nodeName;
     var attrs    = xml.attributes;
+    var isText   = xml.nodeName==="text";
     if (xml.namespaceURI)
       tag += ' xmlns="'+xml.namespaceURI+'"';
     if (attrs)
@@ -192,8 +193,10 @@ function listXML(prefix,xml) { // {{{
     if (xml.hasChildNodes && xml.hasChildNodes()) {
       text = [prefix+tag+'>'];
       for (var i=0; i<xml.childNodes.length; i++)
-        text = text.concat(listXML(prefix+' ',xml.childNodes.item(i)));
-      text.push(prefix+'</'+xml.nodeName+'>');
+        text = text.concat(listXML(isText ? "" : prefix+' ',xml.childNodes.item(i)));
+      text.push((isText ? "" : prefix)+'</'+xml.nodeName+'>');
+      if (isText)
+        text = [text.join("")];
     } else
       text = [prefix+tag+'/>'];
   }
