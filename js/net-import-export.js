@@ -14,6 +14,48 @@ module("net-import-export.js",["net.js","debug.js","vector.js","utils.js"]
 //       text nodes during Node.rename)
 
 /**
+ * generate code for net
+ */
+net.Net.prototype.generateCode = function() { // {{{
+
+  function take(a,i) {
+    return (i>0?"return ":"")+"NDS.take('"+a.source.name+"', function("+a.source.name+") {"
+  }
+
+  function guard(t) {
+    return (t.arcsIn.length>0?"return ":"")+"NDS.guard(true, function(_) {"
+  }
+
+  function put(a) {
+    return "return NDS.put('"+a.target.name+"', function(_) {"
+  }
+
+  // TODO: assign transition code to var
+  function transition_code(t) {
+    return ["// "+t.name]
+            .concat(t.arcsIn.map(take))
+            .concat(guard(t))
+            .concat(t.arcsOut.map(put))
+            .concat("return NDS.noop"
+                   ,Array(t.arcsOut.length+1).join("})")
+                   ,"})"
+                   ,Array(t.arcsIn.length+1).join("})")
+                   ,";");
+  }
+
+  var ts_code = [].concat.apply([]
+                               ,Object.keys(this.transitions)
+                                  .map(function(key){
+                                    return transition_code(this.transitions[key])
+                                   }.bind(this)) );
+
+  var net_code = ["// generated code"
+                 ].concat(ts_code);
+
+  return net_code.join("\n");
+} // }}}
+
+/**
  * render Net as PNML document string
  */
 net.Net.prototype.toPNML = function() { // {{{
@@ -384,13 +426,28 @@ net.Net.prototype.addImportExportControls = function () { // {{{
       location = 'data:application/octet-stream,'+encodeURIComponent(pnml);
     },false);
 
+  // generate code (in progress)
+  var generateCode = utils.element('input'
+                                  ,{"type" : 'button'
+                                   ,"id"   : 'generateCode'
+                                   ,"value": 'generate code'
+                                   ,"style": 'margin-left: 10px'
+                                   });
+  generateCode.addEventListener('click',function(){
+      var code = net.generateCode();
+      debug.messagePre(code);
+      // use application/octet-stream to force "save as"-dialogue
+      // location = 'data:application/octet-stream,'+encodeURIComponent(code);
+    },false);
+
   // TODO: if we want to use this, eg, for cursor coordinates, we need
   //       better layout control
   var messageField = utils.element('div',{"id":'messageField'});
 
   var importExportGroup = utils.element('span'
                                        ,{"id":'importExportGroup'}
-                                       ,[importForm,exportSVG,exportPNML,messageField]);
+                                       ,[importForm,exportSVG,exportPNML
+                                        ,generateCode,messageField]);
   this.netDiv.insertBefore(importExportGroup,this.svgDiv);
 } // }}}
 
