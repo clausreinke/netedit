@@ -27,7 +27,7 @@ Node.prototype.toString = function() {
   return this.nodeType+'('+this.id+','+this.pos+')';
 }
 
-// TODO: link font-size to unit-size
+// TODO: link font-size to unit-size; factor out font-size
 /**
  * add a text label
  *  
@@ -146,7 +146,7 @@ Node.prototype.mouseupHandler = function(event) {
     if (!(this.net.selection.source instanceof this.constructor)) {
       var partialArc = this.net.selection;
       this.net.contents.removeChild(partialArc.a); 
-      var arc = this.net.addArc(partialArc.source,this,partialArc.midpoints);
+      var arc = this.net.addArc(partialArc.source,this,undefined,undefined,partialArc.midpoints);
       partialArc.source.cancelListeners();
       this.net.selection = null;
     } else {
@@ -213,10 +213,11 @@ Node.prototype.unregisterArcAtTarget = function(arc) {
  * @param pos
  * @param r
  */
-function Place(net,id,name,pos,r) {
+function Place(net,id,name,marking,pos,r) {
   this.net     = net;
   this.id      = id;
   this.name    = name;
+  this.marking = marking;
   this.pos     = pos;
   this.r       = r;
   this.arcsIn  = [];
@@ -227,7 +228,42 @@ Place.prototype = new Node('place');
 Place.prototype.constructor = Place;
 
 /**
- * a Place is visually represented by a graphical shape and a textual label;
+ * add marking
+ *  
+ * @param x
+ * @param y
+ */
+Place.prototype.addMarking = function () {
+  this.m = utils.elementNS(utils.svgNS,'text'
+                          ,{'class':'marking'
+                           ,'stroke':'green'
+                           ,'stroke-width':'0.1px'
+                           ,'font-size':'10px'
+                           ,'x':this.pos.x+this.r
+                           ,'y':this.pos.y+this.r+10
+                           }
+                          ,[document.createTextNode(this.marking)]);
+  this.m.addEventListener('click',utils.bind(this.changeMarking,this),false);
+  this.net.contents.appendChild(this.m);
+}
+
+/**
+ * event handler: prompt for new marking
+ *  
+ * @param event
+ */
+Place.prototype.changeMarking = function(event) {
+  var marking = prompt('new marking? ',this.marking);
+  if (marking!=null) {
+    this.m.firstChild.data = marking;
+    this.marking           = marking;
+  }
+  this.updateView();
+}
+
+
+/**
+ * a Place is visually represented by a graphical shape and two textual labels;
  * it reacts to click, mousedown, and mouseup events;
  */
 Place.prototype.addView = function () {
@@ -240,6 +276,7 @@ Place.prototype.addView = function () {
   this.p.addEventListener(utils.pointerEvents.start,utils.bind(this.mousedownHandler,this),false);
   this.p.addEventListener(utils.pointerEvents.end,utils.bind(this.mouseupHandler,this),false);
   this.addLabel(this.pos.x+this.r,this.pos.y+this.r);
+  this.marking && this.addMarking();
 }
 
 /**
@@ -295,10 +332,16 @@ Place.prototype.connectorFor = function(pos) {
  */
 Place.prototype.mousedownHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
   this.p.setAttributeNS(null,'stroke','green'); 
     // TODO: - have a 'selected' CSS class for this?
     //       - generically change rendering, move code to Node()
-  return Node.prototype.mousedownHandler.call(this,event);
+  if (this.net.cursor.mode==='p') {
+    this.m || this.addMarking();
+    return this.changeMarking(event);
+  } else {
+    return Node.prototype.mousedownHandler.call(this,event);
+  }
 }
 /**
  * event handler: cancel Place highlighting, then delegate to Node
@@ -518,14 +561,60 @@ Arc.prototype.updateView = function() {
 }
 
 /**
+ * add label
+ * 
+ * @param pos
+ */
+Arc.prototype.addLabel = function(label,pos) {
+  if (label!=null) {
+    this.label    = label;
+    this.labelPos = pos;
+    if (this.l) this.source.net.contents.removeChild(this.l);
+    this.l = utils.elementNS(utils.svgNS,'text'
+                            ,{'class':'arclabel'
+                             ,'stroke':'black'
+                             ,'stroke-width':'0.1px'
+                             ,'font-size':'10px'
+                             ,'x':pos.x
+                             ,'y':pos.y
+                             }
+                            ,[document.createTextNode(this.label)]);
+    this.l.addEventListener('click',utils.bind(this.editLabel,this),false);
+    this.source.net.contents.appendChild(this.l);
+    // this.updateView();
+  }
+}
+
+/**
+ * edit label
+ */
+Arc.prototype.editLabel = function() {
+  var label = prompt('new arc label? ',this.label);
+  this.addLabel(label,this.labelPos);
+  this.updateView();
+}
+
+/**
  * insert new midpoint (keeping midpoints ordered by distance from source)
+ * 
+ * @param pos
+ */
+Arc.prototype.insertPoint = function(pos) {
+  var segment = this.segmentFor(pos);
+  if (segment>=0) {
+    this.midpoints.splice(segment,0,pos);
+  }
+};
+
+/**
+ * find segment for pos
  * 
  * @param pos
  */
 // note: we need the distance along the path, not the euclidic distance!
 //       for crossed paths, simply take the first intersection..
 //       if we want to support curved paths, this will get more difficult
-Arc.prototype.insertPoint = function(pos) {
+Arc.prototype.segmentFor = function(pos) {
   var start = this.sourceCon;
   var nexts = this.midpoints.concat([this.targetCon]);
   for (var i in nexts) {
@@ -534,13 +623,12 @@ Arc.prototype.insertPoint = function(pos) {
     var lpos  = vpos.length();
     var lnext = vnext.length();
     if (lpos===0) {
-      debug.message('midpoint already exists');
-      break;
+      debug.message('position on existing midpoint');
+      return -1;
     }
     if ((lpos<=lnext) && vpos.scale(lnext/lpos).close(vnext)) {
-      // new midpoint on path segment following start, insert pos here
-      this.midpoints.splice(i,0,pos);
-      break;
+      // midpoint on path segment following start
+      return i;
     }
     start = this.midpoints[i];
   }
@@ -568,7 +656,8 @@ Arc.prototype.findPointIndex = function(pos) {
 /**
  * event handler: in deletion mode, remove nearest mid-point or full Arc
  *                  (if no mid-point is near) from host net;
- *                otherwise, add mid-point to Arc
+ *                in arc mode, add mid-point to Arc
+ *                otherwise, add label
  * 
  * @param event
  */
@@ -585,8 +674,11 @@ Arc.prototype.clickHandler = function(event) {
     else
       this.source.net.removeArc(this);
     this.updateView();
-  } else if (this.source.net.cursor.mode!=='m') {
+  } else if (this.source.net.cursor.mode==='a') {
     this.insertPoint(pos);
+    this.updateView();
+  } else if (this.source.net.cursor.mode!=='m') {
+    this.addLabel(prompt('new arc label? ',this.label),pos);
     this.updateView();
   }
   return false;
@@ -631,6 +723,7 @@ Arc.prototype.mousedownHandler = function(event) {
  *  
  * @param event
  */
+// TODO: this.movedPoint can be null??
 Arc.prototype.mousemoveHandler = function(event) {
   event.preventDefault();
   var p = this.source.net.client2canvas(event);

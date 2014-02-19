@@ -13,26 +13,28 @@ module("net-import-export.js",["net.js","debug.js","vector.js","utils.js"]
 //       during import/export loops (as well as extra whitespace around
 //       text nodes during Node.rename)
 
+// TODO: - separate take/guard from put
+//       - notify UI: transition enabling/firing
 /**
  * generate code for net
  */
 net.Net.prototype.generateCode = function() { // {{{
 
   function take(a,i) {
-    return (i>0?"return ":"")+"NDS.take('"+a.source.name+"', function("+a.source.name+") {"
+    return (i>0?"return ":"")+"NDS.take('"+a.source.name+"', function("+(a.label||"_")+") {"
   }
 
   function guard(t) {
-    return (t.arcsIn.length>0?"return ":"")+"NDS.guard(true, function(_) {"
+    return (t.arcsIn.length>0?"return ":"")+"NDS.guard(true, function() {"
   }
 
   function put(a) {
-    return "return NDS.put('"+a.target.name+"', function(_) {"
+    return "return NDS.put('"+a.target.name+"',"+(a.label||"undefined")+", function() {"
   }
 
   // TODO: assign transition code to var
   function transition_code(t) {
-    return ["// "+t.name]
+    return ["// "+t.name,"var "+t.name+" = "]
             .concat(t.arcsIn.map(take))
             .concat(guard(t))
             .concat(t.arcsOut.map(put))
@@ -40,7 +42,8 @@ net.Net.prototype.generateCode = function() { // {{{
                    ,Array(t.arcsOut.length+1).join("})")
                    ,"})"
                    ,Array(t.arcsIn.length+1).join("})")
-                   ,";");
+                   ,";"
+                   ,"transitions.push("+t.name+");");
   }
 
   var ts_code = [].concat.apply([]
@@ -49,8 +52,21 @@ net.Net.prototype.generateCode = function() { // {{{
                                     return transition_code(this.transitions[key])
                                    }.bind(this)) );
 
+  var marking_code = "var marking = { "
+                     + Object.keys(this.places)
+                        .map(function(key){
+                          var place = this.places[key];
+                          return place.name+": "+(place.marking||"[]")
+                         }.bind(this) )
+                        .join("\n\t, ")
+                     + "\n\t};";
+
   var net_code = ["// generated code"
-                 ].concat(ts_code);
+                 ,"var transitions = []"
+                 ].concat(ts_code
+                         ,marking_code
+                         ,"console.log(run(transitions,marking));"
+                         );
 
   return net_code.join("\n");
 } // }}}
@@ -74,24 +90,36 @@ net.Net.prototype.toPNML = function() { // {{{
                                            ,[utils.elementNS(null,'text',{}
                                                             ,[document.createTextNode(text)])]);
                    }
-  var place      = function(id,n,x,y) {
+  var imarking   = function(text) {
+                     return utils.elementNS(null,'initialMarking',{}
+                                           ,[utils.elementNS(null,'text',{}
+                                                            ,[document.createTextNode(text)])]);
+                   }
+  var place      = function(id,n,m,x,y) {
                      return utils.elementNS(null,'place'
                                            ,{'id':id}
-                                           ,[name(n),graphics([position(x,y)])]);
+                                           ,[name(n),graphics([position(x,y)])]
+                                            .concat(m?[imarking(m)]:[]));
                    }
   var transition = function(id,n,x,y) {
                     return utils.elementNS(null,'transition'
                                           ,{'id':id}
                                           ,[name(n),graphics([position(x,y)])]);
                    }
-  var arc        = function(id,source,target,positions) {
-                     return utils.elementNS(null,'arc'
+  var inscription= function(text,pos) {
+                     return utils.elementNS(null,'inscription',{}
+                                           ,[utils.elementNS(null,'text',{}
+                                                            ,[document.createTextNode(text)])
+                                            ,graphics([position(pos.x,pos.y)])]);
+                   }
+  var arc        = function(id,source,target,label,labelPos,positions) {
+                     return utils.elementNS(null,'arc' // TODO: label position
                                            ,{'id':id,'source':source,'target':target}
-                                           ,(positions && positions.length>0)
-                                            ? [graphics(positions.map(function(p){
+                                           ,((positions && positions.length>0)
+                                             ? [graphics(positions.map(function(p){
                                                           return position(p.x,p.y);
-                                                        }))]
-                                            : [] );
+                                                         }))]
+                                             : []).concat( label ? [inscription(label,labelPos)] : []) );
                    }
   var net        = function(type,id,children) {
                      return utils.elementNS(null,'net'
@@ -103,7 +131,7 @@ net.Net.prototype.toPNML = function() { // {{{
   var ps = []; 
     for(var pi in this.places) {
       var p=this.places[pi];
-      ps.push(place(p.id,p.name,p.pos.x,p.pos.y));
+      ps.push(place(p.id,p.name,p.marking,p.pos.x,p.pos.y));
     };
   var ts = [];
     for(var ti in this.transitions) {
@@ -113,10 +141,10 @@ net.Net.prototype.toPNML = function() { // {{{
   var as = [];
     for(var ai in this.arcs) {
       var a=this.arcs[ai];
-      as.push(arc('arc'+ai,a.source.id,a.target.id,a.midpoints));
+      as.push(arc('arc'+ai,a.source.id,a.target.id,a.label,a.labelPos,a.midpoints));
     };
   var n = net("http://www.pnml.org/version-2009/grammar/ptnet",'net'
-             ,[name('example')
+             ,[name('example') // TODO
               ,graphics([dimension(this.width,this.height)
                         ,position(0,0)])
               ].concat(ts,ps,as));
@@ -168,13 +196,16 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
       var id    = place.getAttributeNS(null,'id');
       var name  = place.querySelector('name>text');
       var pos   = place.querySelector('graphics>position');
+      var imark = place.querySelector('initialMarking>text');
       if (pos) {
         var x     = pos.attributes['x'].nodeValue;
         var y     = pos.attributes['y'].nodeValue;
         px = Math.min(px,x); dx = Math.max(dx,x);
         py = Math.min(py,y); dy = Math.max(dy,y);
         // debug.message(id+': '+(name?name.textContent:'')+' '+x+'/'+y);
-        this.addPlace(id,x*scale,y*scale,unit,name?name.textContent:null);
+        this.addPlace(id,x*scale,y*scale,unit
+                     ,name?name.textContent:null
+                     ,imark?imark.textContent:"");
       } else {
         debug.message('sorry, no automatic layout - all nodes should have positions');
         debug.messagePre(debug.listXML('',place).join("\n"));
@@ -200,14 +231,23 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
       }
     }
 
-    var arcs = pnml.querySelectorAll('arc');
+    var arcs = pnml.querySelectorAll('arc'); //TODO: labels
     for (var i=0; i<arcs.length; i++) {
       var arc = arcs[i];
       var id  = arc.getAttributeNS(null,'id');
       var sourceId = arc.getAttributeNS(null,'source');
       var targetId = arc.getAttributeNS(null,'target');
       // debug.message(id+': '+sourceId+' -> '+targetId);
-      var positions = arc.querySelectorAll('graphics>position');
+      var label    = arc.querySelector('inscription>text');
+      if (label) {
+        label = label.textContent;
+      }
+      var labelPos = arc.querySelector('inscription>graphics>position');
+      if (labelPos) {
+        labelPos = { x: labelPos.getAttributeNS(null,'x')
+                   , y: labelPos.getAttributeNS(null,'y')};
+      }
+      var positions = arc.querySelectorAll('arc>graphics>position');
       if (positions.length>0) {
         var midpoints = [];
         for (var j=0; j<positions.length; j++) {
@@ -219,9 +259,9 @@ net.Net.prototype.fromPNML = function(pnml,scale,unit) { // {{{
       } else
         var midpoints = null;
       if (this.transitions[sourceId] && this.places[targetId])
-        this.addArc(this.transitions[sourceId],this.places[targetId],midpoints);
+        this.addArc(this.transitions[sourceId],this.places[targetId],label,labelPos,midpoints);
       else if (this.places[sourceId] && this.transitions[targetId])
-        this.addArc(this.places[sourceId],this.transitions[targetId],midpoints);
+        this.addArc(this.places[sourceId],this.transitions[targetId],label,labelPos,midpoints);
       else
         debug.message('cannot find source and target');
     }
@@ -437,7 +477,7 @@ net.Net.prototype.addImportExportControls = function () { // {{{
       var code = net.generateCode();
       debug.messagePre(code);
       // use application/octet-stream to force "save as"-dialogue
-      // location = 'data:application/octet-stream,'+encodeURIComponent(code);
+      location = 'data:application/octet-stream,'+encodeURIComponent(code);
     },false);
 
   // TODO: if we want to use this, eg, for cursor coordinates, we need

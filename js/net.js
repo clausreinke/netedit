@@ -302,6 +302,8 @@ Net.prototype.updateBackdrop = function () {
  */
 // TODO: - alternative key bindings: t/p modelessly create nodes, a
 //          starts/splits/ends arcs
+//       - FIX: click toggles help; artefact of menu handling
+//       - better UI model for touch devices (no keyboard)
 // note: future versions will use keybindings differently
 Net.prototype.addHelp = function () {
   this.help = utils.elementNS(utils.svgNS,'text'
@@ -408,7 +410,7 @@ Net.prototype.clickHandler = function (event) {
   if (this.cursor.mode=='p') {
     var defaultName = 'p'+this.clicks++;
     var name = prompt('name of new place: ',defaultName);
-    if (name!=null) this.addPlace(name,p.x,p.y);
+    if (name!=null) this.addPlace(name,p.x,p.y,this.r,name,undefined);
   } else if (this.cursor.mode=='t') {
     var defaultName = 't'+this.clicks++;
     var name = prompt('name of new transition: ',defaultName);
@@ -426,11 +428,12 @@ Net.prototype.clickHandler = function (event) {
  * @param target
  * @param midpoints
  */
-Net.prototype.addArc = function (source,target,midpoints) {
+Net.prototype.addArc = function (source,target,label,labelPos,midpoints) {
   if ((source instanceof elements.Transition && target instanceof elements.Place)
     ||(source instanceof elements.Place && target instanceof elements.Transition)) {
 
     var arc = new elements.Arc(source,target,midpoints);
+    arc.addLabel(label,labelPos);
     this.arcs.push(arc);
     source.registerArcAtSource(arc);
     target.registerArcAtTarget(arc);
@@ -450,6 +453,9 @@ Net.prototype.removeArc = function (arc) {
   arc.source.unregisterArcAtSource(arc);
   arc.target.unregisterArcAtTarget(arc);
   this.contents.removeChild(arc.a);
+  if (arc.l) {
+    this.contents.removeChild(arc.l);
+  }
 }
 
 /**
@@ -461,9 +467,10 @@ Net.prototype.removeArc = function (arc) {
  * @param y
  * @param r
  * @param name
+ * @param marking
  */
-Net.prototype.addPlace = function (id,x,y,r,name) {
-  var place = new elements.Place(this,id,name?name:id
+Net.prototype.addPlace = function (id,x,y,r,name,marking) {
+  var place = new elements.Place(this,id,name?name:id,marking?marking:""
                        ,new vector.Pos(x,y)
                        ,r?r:this.r);
   this.places[id] = place;
@@ -478,11 +485,12 @@ Net.prototype.addPlace = function (id,x,y,r,name) {
  */
 Net.prototype.removePlace = function (place) {
   delete this.places[place.id];
-  // TODO: this should move to NODE()
+  // TODO: this should move to NODE or PLACE
   for (var arcIn in place.arcsIn) this.removeArc(place.arcsIn[arcIn]);
   for (var arcOut in place.arcsOut) this.removeArc(place.arcsOut[arcOut]);
   this.contents.removeChild(place.p);
   this.contents.removeChild(place.l);
+  if (place.m) this.contents.removeChild(place.m);
 }
 
 /**
@@ -585,7 +593,7 @@ Net.prototype.modeHandler = function (mode) {
  */
 Net.prototype.mousemoveHandler = function (event) {
   event.preventDefault();
-  debug.messagePre("Net.mousemoveHandler");
+  // debug.messagePre("Net.mousemoveHandler");
   var p = this.client2canvas(event);
   // message('Net.mousemoveHandler '+p.x+'/'+p.y);
   // document.getElementById('messageField').innerHTML=p.x+'/'+p.y;
