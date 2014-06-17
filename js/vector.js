@@ -3,7 +3,7 @@
 // (load before net-elements.js and net.js)
 //
 
-module("vector.js",[],function() {
+define("vector.js",[],function() {
 
 /**
  * basic 2d positions, with interface to 2d vectors

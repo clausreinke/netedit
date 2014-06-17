@@ -14,7 +14,7 @@
 // improve my understanding and to gain more flexibility/scriptability
 //
 
-module("debug.js",[],function() {
+define("debug.js",[],function() {
 
 // logging messages to div element
 /**

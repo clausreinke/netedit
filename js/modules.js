@@ -156,7 +156,7 @@
   }
 
   // export module wrapper
-  window.module = module;
+  window.define = module;
 
   // just calling linkModules here would not work, as we have only 
   // added the script elements, the scripts could still be loading;

@@ -4,7 +4,7 @@
 // TODO: wrap in its own namespace
 // TODO: add updateElement/updateElementNS
 
-module("utils.js",[],function(){
+define("utils.js",[],function(){
 
 var svgNS = 'http://www.w3.org/2000/svg';
 

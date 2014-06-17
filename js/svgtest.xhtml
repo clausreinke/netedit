@@ -59,13 +59,13 @@ var before = checkpoint(window);
 
 /* TODO: support packageModules again, in updated modules.js
 
-module('package',['debug.js','net-import-export.js'],function(debug,net) {
+define('package',['debug.js','net-import-export.js'],function(debug,net) {
   packaged = packageModules(['main','package']);
   debug.messagePre(packaged);
 });
 */
 
-module('main',['debug.js','net-import-export.js']
+define('main',['debug.js','net-import-export.js']
       ,function(debug,net) {
               
   /* var */ a_net  = new net.Net('a_net',500,300);

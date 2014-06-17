@@ -6,7 +6,7 @@
 // dependency: debug.js
 // dependency: net.js
 
-module("net-import-export.js",["net.js","debug.js","vector.js","utils.js"]
+define("net-import-export.js",["net.js","debug.js","vector.js","utils.js"]
       ,function(net,debug,vector,utils) {
 
 // TODO: we have extra lines accumulating around text node contents
@@ -32,7 +32,6 @@ net.Net.prototype.generateCode = function() { // {{{
     return "return NDS.put('"+a.target.name+"',"+(a.label||"undefined")+", function() {"
   }
 
-  // TODO: assign transition code to var
   function transition_code(t) {
     return ["// "+t.name,"var "+t.name+" = "]
             .concat(t.arcsIn.map(take))

@@ -4,7 +4,7 @@
 // dependency: vector.js
 // dependency: utils.js
 
-module("net-elements.js",["vector.js","utils.js","debug.js"]
+define("net-elements.js",["vector.js","utils.js","debug.js"]
       ,function(vector,utils,debug) {
 
 // ----------------------------- Node {{{

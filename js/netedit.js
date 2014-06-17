@@ -91,7 +91,7 @@ function linkModules() {
 // write an inline module with those modules as dependencies); 
 // implicitly call linkModules after all modules are ready
 // (this also means that all modules need to be in the head)
-window.module      = module;
+window.define      = module;
 window.addEventListener('load',linkModules,false);
 
   // calling linkModules here wouldn't work, as loadModule only adds the

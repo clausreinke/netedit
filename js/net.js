@@ -7,7 +7,7 @@
 // dependency: net-elements.js
 // dependency: utils.js
 
-module("net.js",["vector.js","net-elements.js","utils.js","debug.js"]
+define("net.js",["vector.js","net-elements.js","utils.js","debug.js"]
       ,function(vector,elements,utils,debug) {
 
 // ----------------------------- Cursor {{{
