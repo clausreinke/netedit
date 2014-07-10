@@ -19,6 +19,19 @@ function testElement(root,by) {
   return el;
 }
 
+function testLabel(cls,label,by) {
+  var lastElement = driver.findElement(by)
+  lastElement.then(function(el){
+                    webdriver.promise.all([el.getAttribute('class'),el.getText()])
+                      .then(function(ct){
+                              if (ct[0]===cls && ct[1]===label)
+                                console.log('present: '+cls+' '+label);
+                              else
+                                throw ('wrong class '+ct[0]+' or text '+ct[1]);
+                            }) })
+             .then(null,function(error){console.error('missing '+cls+': '+label,error)});
+}
+
 var target = 'file://'+__dirname.replace(/\\/g,'/')+'/js/svgtest.html';
 console.log("navigating to: ",target);
 driver.navigate().to(target);
@@ -63,7 +76,7 @@ body.sendKeys("t").then(function(){
   prompt.sendKeys("T0");
   prompt.accept();
   testElement(svgDiv,webdriver.By.css('svg .transition#T0'));
-  //TODO: how to test text label/content?
+  testLabel('label','T0',webdriver.By.css('svg #contents :nth-last-child(2)'));
 
   driver.actions()
         .mouseMove(svgDiv,{x:200,y:200})
@@ -73,6 +86,7 @@ body.sendKeys("t").then(function(){
   prompt.sendKeys("T1");
   prompt.accept();
   testElement(svgDiv,webdriver.By.css('svg .transition#T1'));
+  testLabel('label','T1',webdriver.By.css('svg #contents :nth-last-child(2)'));
 });
 
 // place creation mode
@@ -87,6 +101,7 @@ body.sendKeys("p").then(function(){
   prompt.sendKeys("P0");
   prompt.accept();
   testElement(svgDiv,webdriver.By.css('svg .place#P0'));
+  testLabel('label','P0',webdriver.By.css('svg #contents :nth-last-child(2)'));
 
   driver.actions()
         .mouseMove(svgDiv,{x:100,y:200})
@@ -96,6 +111,7 @@ body.sendKeys("p").then(function(){
   prompt.sendKeys("P1");
   prompt.accept();
   testElement(svgDiv,webdriver.By.css('svg .place#P1'));
+  testLabel('label','P1',webdriver.By.css('svg #contents :nth-last-child(2)'));
 });
 
 // arc creation mode
@@ -111,7 +127,8 @@ body.sendKeys("a").then(function(){
         .mouseMove(svgDiv,{x:200,y:100})
         .mouseUp()
         .perform();
-  testElement(svgDiv,webdriver.By.css('svg .arc'));
+  driver.findElements(webdriver.By.css('svg .arc'))
+    .then(function(arcs){console.log("created 1 arc: ",arcs.length===1)});
 
   driver.actions()
         .mouseMove(svgDiv,{x:200,y:100})
@@ -119,7 +136,8 @@ body.sendKeys("a").then(function(){
         .mouseMove(svgDiv,{x:200,y:200})
         .mouseUp()
         .perform();
-  testElement(svgDiv,webdriver.By.css('svg .arc'));
+  driver.findElements(webdriver.By.css('svg .arc'))
+    .then(function(arcs){console.log("created 2 arc: ",arcs.length===2)});
 
   driver.actions()
         .mouseMove(svgDiv,{x:200,y:200})
@@ -127,7 +145,8 @@ body.sendKeys("a").then(function(){
         .mouseMove(svgDiv,{x:100,y:200})
         .mouseUp()
         .perform();
-  testElement(svgDiv,webdriver.By.css('svg .arc'));
+  driver.findElements(webdriver.By.css('svg .arc'))
+    .then(function(arcs){console.log("created 3 arc: ",arcs.length===3)});
 
   driver.actions()
         .mouseMove(svgDiv,{x:100,y:200})
@@ -135,7 +154,8 @@ body.sendKeys("a").then(function(){
         .mouseMove(svgDiv,{x:100,y:100})
         .mouseUp()
         .perform();
-  testElement(svgDiv,webdriver.By.css('svg .arc'));
+  driver.findElements(webdriver.By.css('svg .arc'))
+    .then(function(arcs){console.log("created 4 arc: ",arcs.length===4)});
 
   // arc label creation mode
   body.sendKeys("l").then(function(){
@@ -150,7 +170,7 @@ body.sendKeys("a").then(function(){
     var prompt = driver.switchTo().alert();
     prompt.sendKeys("a1");
     prompt.accept();
-    testElement(svgDiv,webdriver.By.css('svg .arcLabel'));
+    testLabel('arclabel','a1',webdriver.By.css('svg #contents :last-child'));
 
     driver.actions()
           .mouseMove(svgDiv,{x:200,y:150})
@@ -159,7 +179,7 @@ body.sendKeys("a").then(function(){
     var prompt = driver.switchTo().alert();
     prompt.sendKeys("a2");
     prompt.accept();
-    testElement(svgDiv,webdriver.By.css('svg .arcLabel'));
+    testLabel('arclabel','a2',webdriver.By.css('svg #contents :last-child'));
 
     driver.actions()
           .mouseMove(svgDiv,{x:150,y:200})
@@ -168,7 +188,7 @@ body.sendKeys("a").then(function(){
     var prompt = driver.switchTo().alert();
     prompt.sendKeys("a3");
     prompt.accept();
-    testElement(svgDiv,webdriver.By.css('svg .arcLabel'));
+    testLabel('arclabel','a3',webdriver.By.css('svg #contents :last-child'));
 
     driver.actions()
           .mouseMove(svgDiv,{x:100,y:150})
@@ -177,7 +197,7 @@ body.sendKeys("a").then(function(){
     var prompt = driver.switchTo().alert();
     prompt.sendKeys("a4");
     prompt.accept();
-    testElement(svgDiv,webdriver.By.css('svg .arcLabel'));
+    testLabel('arclabel','a4',webdriver.By.css('svg #contents :last-child'));
   });
 
 });
