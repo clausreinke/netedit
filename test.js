@@ -8,13 +8,24 @@ var driver = new webdriver.Builder().
     withCapabilities(options.toCapabilities()).
     build();
 
+var report = { success : function() { console.log.apply(null,arguments); }
+             , failure : function() { console.error.apply(null,arguments); }
+             , test : function(msg,flag) {
+                        if (flag) {
+                          console.log('. '+msg,flag);
+                        } else {
+                          console.error('! '+msg,flag);
+                        }
+                      }
+             };
+
 function testElement(root,by) {
   var el = root.findElement(by);
   el.then(function() {
-      console.log("present:",by);
+      report.success(". present:",by);
     })
     .then(null,function(){
-      console.error("missing:",by);
+      report.failure("! missing:",by);
     });
   return el;
 }
@@ -25,11 +36,11 @@ function testLabel(cls,label,by) {
                     webdriver.promise.all([el.getAttribute('class'),el.getText()])
                       .then(function(ct){
                               if (ct[0]===cls && ct[1]===label)
-                                console.log('present: '+cls+' '+label);
+                                report.success('. present: '+cls+' '+label);
                               else
                                 throw ('wrong class '+ct[0]+' or text '+ct[1]);
                             }) })
-             .then(null,function(error){console.error('missing '+cls+': '+label,error)});
+             .then(null,function(error){report.failure('! missing '+cls+': '+label,error)});
 }
 
 var target = 'file://'+__dirname.replace(/\\/g,'/')+'/js/svgtest.html';
@@ -55,12 +66,12 @@ var netHelp = testElement(svgDiv,webdriver.By.id('netHelp'));
 // help visibility and toggling
 // TODO: select help "mode" keeps toggling help while overlaying previous mode
 netHelp.isDisplayed().then(function(displayed){
-  console.log("help visible:",displayed);
+  report.test("help visible:",displayed);
 });
 
 body.sendKeys("?").then(function(){
   netHelp.isDisplayed().then(function(displayed){
-    console.log("help toggled off by '?':",!displayed);
+    report.test("help toggled off by '?':",!displayed);
   });
 });
 
@@ -128,7 +139,7 @@ body.sendKeys("a").then(function(){
         .mouseUp()
         .perform();
   driver.findElements(webdriver.By.css('svg .arc'))
-    .then(function(arcs){console.log("created 1 arc: ",arcs.length===1)});
+    .then(function(arcs){report.test("created 1 arc: ",arcs.length===1)});
 
   driver.actions()
         .mouseMove(svgDiv,{x:200,y:100})
@@ -137,7 +148,7 @@ body.sendKeys("a").then(function(){
         .mouseUp()
         .perform();
   driver.findElements(webdriver.By.css('svg .arc'))
-    .then(function(arcs){console.log("created 2 arc: ",arcs.length===2)});
+    .then(function(arcs){report.test("created 2 arc: ",arcs.length===2)});
 
   driver.actions()
         .mouseMove(svgDiv,{x:200,y:200})
@@ -146,7 +157,7 @@ body.sendKeys("a").then(function(){
         .mouseUp()
         .perform();
   driver.findElements(webdriver.By.css('svg .arc'))
-    .then(function(arcs){console.log("created 3 arc: ",arcs.length===3)});
+    .then(function(arcs){report.test("created 3 arc: ",arcs.length===3)});
 
   driver.actions()
         .mouseMove(svgDiv,{x:100,y:200})
@@ -155,7 +166,7 @@ body.sendKeys("a").then(function(){
         .mouseUp()
         .perform();
   driver.findElements(webdriver.By.css('svg .arc'))
-    .then(function(arcs){console.log("created 4 arc: ",arcs.length===4)});
+    .then(function(arcs){report.test("created 4 arc: ",arcs.length===4)});
 
   // arc label creation mode
   body.sendKeys("l").then(function(){
