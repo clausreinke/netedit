@@ -562,13 +562,13 @@ Net.prototype.modeHandler = function (mode) {
   // TODO: safari 5.0 doesn't listen to \esc; workaround: use other unused key for now
   if (this.selection) {
     if (this.selection instanceof elements.Arc) {
-      message('cancelling Arc construction in progress');
+      debug.message('cancelling Arc construction in progress');
       this.contents.removeChild(this.selection.a);
       this.selection.source.cancelListeners();
 
     } else if ((this.selection instanceof elements.Place)
              ||(this.selection instanceof elements.Transition)) {
-      message('cancelling Node move in progress');
+      debug.message('cancelling Node move in progress');
       this.selection.cancelListeners();
     }
     this.selection = null;
