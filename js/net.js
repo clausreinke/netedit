@@ -145,6 +145,8 @@ function Net(id,width,height) {
                                 ,'width':'100%'
                                 ,'height':'10cm'
                                 });
+  this.svg.setAttribute('xmlns',utils.svgNS);
+  this.svg.setAttribute('xmlns:xlink',utils.xlinkNS);
   this.svg.id = id;
   this.svgDiv.appendChild(this.svg);
   this.netDiv.appendChild(this.svgDiv);

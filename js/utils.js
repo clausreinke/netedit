@@ -7,6 +7,7 @@
 define("utils.js",[],function(){
 
 var svgNS = 'http://www.w3.org/2000/svg';
+var xlinkNS = 'http://www.w3.org/1999/xlink';
 
 // TODO: touchcancel? "real" pointer events spec?
 var pointerEvents = ('ontouchstart' in window)
@@ -70,6 +71,7 @@ function setAttributesNS(e,attributes) {
 
 // exports
 return { svgNS:           svgNS
+       , xlinkNS:         xlinkNS
        , bind:            bind
        , element:         element
        , elementNS:       elementNS
