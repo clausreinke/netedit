@@ -491,6 +491,8 @@ Transition.prototype.mouseupHandler = function(event) {
 
 // ----------------------------- Arc {{{
 
+var arc_count = 0;
+
 /**
  * an Arc connects a source and a target node (of differing types), optionally
  * routed via midpoints; it has a view (visible representation) in the nodes'
@@ -502,6 +504,7 @@ Transition.prototype.mouseupHandler = function(event) {
 function Arc(source,target,midpoints) {
   this.source = source;
   this.target = target;
+  this.id     = arc_count++;
   this.midpoints = midpoints ? midpoints : [];
 
   this.addView();
@@ -524,6 +527,7 @@ Arc.prototype.addView = function() {
                           ,{'style':'stroke-width: 1px; fill: none'
                            ,'stroke':'black'
                            ,'class':'arc'
+                           ,'id':'arc'+this.id
                            ,'marker-mid':'url(#Join)'
                            ,'marker-end':'url(#Arrow)'
                            });
