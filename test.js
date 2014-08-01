@@ -12,6 +12,7 @@ var pathToSeleniumJar = 'C:/javascript/selenium/selenium-server-standalone-2.42.
 switch(process.argv[2]) {
 
   case "chrome" :
+    console.log("browser: chrome");
     var chrome = require('selenium-webdriver/chrome');
 
     options = new chrome.Options();
@@ -20,23 +21,30 @@ switch(process.argv[2]) {
     driver = new webdriver.Builder().
                   withCapabilities(options.toCapabilities()).
                   build();
+
+    tests();
     break;
 
   case "ff" :
+    console.log("browser: firefox");
     SeleniumServer = require('selenium-webdriver/remote').SeleniumServer;
     server = new SeleniumServer(pathToSeleniumJar,{port: 4444, loopback: true});
 
-    server.start();
-    address = url.format({ protocol: 'http'
-                         , hostname: net.getLoopbackAddress()
-                         , port: 4444
-                         , pathname: '/wd/hub'
-                         });
+    server.start().then(function(){
+      address = url.format({ protocol: 'http'
+                           , hostname: net.getLoopbackAddress()
+                           , port: 4444
+                           , pathname: '/wd/hub'
+                           });
+      console.log(address);
 
-    driver = new webdriver.Builder().
-                  usingServer(address).
-                  withCapabilities(webdriver.Capabilities.firefox()).
-                  build();
+      driver = new webdriver.Builder().
+                    usingServer(address).
+                    withCapabilities(webdriver.Capabilities.firefox()).
+                    build();
+
+      tests();
+    });
     break;
 
   default:
@@ -44,6 +52,8 @@ switch(process.argv[2]) {
     process.exit(1);
 
 }
+
+// --------------------------------------------------------------
 
 var report = { success : function() { console.log.apply(null,arguments); }
              , failure : function() { console.error.apply(null,arguments); }
@@ -79,6 +89,8 @@ function testLabel(cls,label,by) {
                             }) })
              .then(null,function(error){report.failure('! missing '+cls+': '+label,error)});
 }
+
+function tests() {
 
 var target = 'file://'+__dirname.replace(/\\/g,'/')+'/js/svgtest.html';
 console.log("navigating to: ",target);
@@ -371,3 +383,4 @@ driver.wait(function(){return false},5000,'done waiting');
 
 // driver.quit();
 
+}
