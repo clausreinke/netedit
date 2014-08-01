@@ -1,12 +1,49 @@
-var webdriver = require('selenium-webdriver');
-var chrome = require('selenium-webdriver/chrome');
+process.on('uncaughtException', function(e) {
+  console.log(require('util').inspect(e, {showHidden:true}));
+})
 
-var options = new chrome.Options();
+var url = require('url');
+var net = require('selenium-webdriver/net');
+
+var webdriver = require('selenium-webdriver');
+var options, driver, SeleniumServer, server, address;
+var pathToSeleniumJar = 'C:/javascript/selenium/selenium-server-standalone-2.42.2.jar';
+
+switch(process.argv[2]) {
+
+  case "chrome" :
+    var chrome = require('selenium-webdriver/chrome');
+
+    options = new chrome.Options();
     options.addArguments("--test-type");
 
-var driver = new webdriver.Builder().
-    withCapabilities(options.toCapabilities()).
-    build();
+    driver = new webdriver.Builder().
+                  withCapabilities(options.toCapabilities()).
+                  build();
+    break;
+
+  case "ff" :
+    SeleniumServer = require('selenium-webdriver/remote').SeleniumServer;
+    server = new SeleniumServer(pathToSeleniumJar,{port: 4444, loopback: true});
+
+    server.start();
+    address = url.format({ protocol: 'http'
+                         , hostname: net.getLoopbackAddress()
+                         , port: 4444
+                         , pathname: '/wd/hub'
+                         });
+
+    driver = new webdriver.Builder().
+                  usingServer(address).
+                  withCapabilities(webdriver.Capabilities.firefox()).
+                  build();
+    break;
+
+  default:
+    console.error("unknown browser");
+    process.exit(1);
+
+}
 
 var report = { success : function() { console.log.apply(null,arguments); }
              , failure : function() { console.error.apply(null,arguments); }
