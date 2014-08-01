@@ -166,7 +166,7 @@ body.sendKeys("p").then(function(){
 body.sendKeys("a").then(function(){
   // TODO: no mode cursor?
   //       add label mode?
-  //       how to test for individual arcs?
+  //       how to test for individual arcs/midpoints?
   //       geometry tests?
 
   driver.actions()
@@ -178,6 +178,12 @@ body.sendKeys("a").then(function(){
   driver.findElements(webdriver.By.css('svg .arc'))
     .then(function(arcs){report.test("created 1 arc: ",arcs.length===1)});
 
+    // add midpoint
+    driver.actions()
+          .mouseMove(svgDiv,{x:170,y:100})
+          .click()
+          .perform();
+
   driver.actions()
         .mouseMove(svgDiv,{x:200,y:100})
         .mouseDown()
@@ -186,6 +192,12 @@ body.sendKeys("a").then(function(){
         .perform();
   driver.findElements(webdriver.By.css('svg .arc'))
     .then(function(arcs){report.test("created 2 arc: ",arcs.length===2)});
+
+    // add midpoint
+    driver.actions()
+          .mouseMove(svgDiv,{x:200,y:170})
+          .click()
+          .perform();
 
   driver.actions()
         .mouseMove(svgDiv,{x:200,y:200})
@@ -196,6 +208,12 @@ body.sendKeys("a").then(function(){
   driver.findElements(webdriver.By.css('svg .arc'))
     .then(function(arcs){report.test("created 3 arc: ",arcs.length===3)});
 
+    // add midpoint
+    driver.actions()
+          .mouseMove(svgDiv,{x:130,y:200})
+          .click()
+          .perform();
+
   driver.actions()
         .mouseMove(svgDiv,{x:100,y:200})
         .mouseDown()
@@ -204,6 +222,12 @@ body.sendKeys("a").then(function(){
         .perform();
   driver.findElements(webdriver.By.css('svg .arc'))
     .then(function(arcs){report.test("created 4 arc: ",arcs.length===4)});
+
+    // add midpoint
+    driver.actions()
+          .mouseMove(svgDiv,{x:100,y:130})
+          .click()
+          .perform();
 
   // arc label creation mode
   body.sendKeys("l").then(function(){
@@ -246,8 +270,103 @@ body.sendKeys("a").then(function(){
     prompt.sendKeys("a4");
     prompt.accept();
     testLabel('arclabel','a4',webdriver.By.css('svg #contents :last-child'));
-  });
 
+    // move mode
+    body.sendKeys("m").then(function(){
+      var svg = driver.findElement(webdriver.By.css('svg'));
+      svg.getAttribute('style').then(function(style){
+        report.test('cursor style is "move":',style==='cursor: move;');
+      });
+
+      // BUG: arc labels don't follow node/midpoint moves
+
+      // move the nodes
+      driver.actions()
+            .mouseMove(svgDiv,{x:200,y:100})
+            .mouseDown()
+            .mouseMove(svgDiv,{x:200,y:150})
+            .mouseUp()
+            .perform();
+
+      driver.actions()
+            .mouseMove(svgDiv,{x:200,y:200})
+            .mouseDown()
+            .mouseMove(svgDiv,{x:150,y:200})
+            .mouseUp()
+            .perform();
+
+      driver.actions()
+            .mouseMove(svgDiv,{x:100,y:200})
+            .mouseDown()
+            .mouseMove(svgDiv,{x:100,y:150})
+            .mouseUp()
+            .perform();
+
+      driver.actions()
+            .mouseMove(svgDiv,{x:100,y:100})
+            .mouseDown()
+            .mouseMove(svgDiv,{x:150,y:100})
+            .mouseUp()
+            .perform();
+
+      // move arc midpoints
+      driver.actions()
+            .mouseMove(svgDiv,{x:170,y:100})
+            .mouseDown()
+            .mouseMove(svgDiv,{x:200,y:100})
+            .mouseUp()
+            .perform();
+driver.wait(function(){return false},5000,'done waiting');
+      driver.actions()
+            .mouseMove(svgDiv,{x:200,y:170})
+            .mouseDown()
+            .mouseMove(svgDiv,{x:200,y:200})
+            .mouseUp()
+            .perform();
+
+      driver.actions()
+            .mouseMove(svgDiv,{x:130,y:200})
+            .mouseDown()
+            .mouseMove(svgDiv,{x:100,y:200})
+            .mouseUp()
+            .perform();
+
+      driver.actions()
+            .mouseMove(svgDiv,{x:100,y:130})
+            .mouseDown()
+            .mouseMove(svgDiv,{x:100,y:100})
+            .mouseUp()
+            .perform();
+
+/*
+      // delete mode
+      body.sendKeys("d").then(function(){
+        var svg = driver.findElement(webdriver.By.css('svg'));
+        svg.getAttribute('style').then(function(style){
+          report.test('cursor style is "crosshair":',style==='cursor: crosshair;');
+        });
+
+        // delete arc midpoint
+        driver.actions()
+              .mouseMove(svgDiv,{x:200,y:100})
+              .click()
+              .perform();
+
+        // delete place
+        driver.actions()
+              .mouseMove(svgDiv,{x:200,y:150})
+              .click()
+              .perform();
+
+        // delete transition
+        driver.actions()
+              .mouseMove(svgDiv,{x:150,y:100})
+              .click()
+              .perform();
+      });
+*/
+    });
+  });
 });
 
 // driver.quit();
