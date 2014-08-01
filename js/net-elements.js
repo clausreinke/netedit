@@ -320,7 +320,9 @@ Place.prototype.updateView = function() {
 Place.prototype.connectorFor = function(pos) {
   var vec = this.pos.vectorTo(pos)
   var l   = vec.length();
-  return this.pos.add(vec.scale(this.r/l));
+  return l>0
+       ? this.pos.add(vec.scale(this.r/l))
+       : this.pos;
 }
 
 // TODO: can these handlers move to Node?
