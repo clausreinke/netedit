@@ -564,8 +564,12 @@ Arc.prototype.updateView = function() {
   this.a.setAttributeNS(null,'d','M '+this.sourceCon.x+' '+this.sourceCon.y+' '
                                 +segments
                                 +'L '+this.targetCon.x+' '+this.targetCon.y);
+  this.addLabel(this.label,this.labelPos);
 }
 
+// NOTE: textPath would have been nice, but always follows path direction,
+//       which would be awkward to work around, so we position text
+//       horizontally at middle of path
 /**
  * add label
  * 
@@ -574,17 +578,17 @@ Arc.prototype.updateView = function() {
 Arc.prototype.addLabel = function(label,pos) {
   if (label!=null) {
     this.label    = label;
-    this.labelPos = pos;
+    this.labelPos = this.a.getPointAtLength(this.a.getTotalLength()/2);
     if (this.l) this.source.net.contents.removeChild(this.l);
     this.l = utils.elementNS(utils.svgNS,'text'
-                            ,{'class':'arclabel'
-                             ,'stroke':'black'
-                             ,'stroke-width':'0.1px'
-                             ,'font-size':'10px'
-                             ,'x':pos.x
-                             ,'y':pos.y
-                             }
-                            ,[document.createTextNode(this.label)]);
+              ,{'class':'arclabel'
+               ,'stroke':'black'
+               ,'stroke-width':'0.1px'
+               ,'font-size':'10px'
+               ,'x':this.labelPos.x
+               ,'y':this.labelPos.y
+               }
+              ,[document.createTextNode(this.label)]);
     this.l.addEventListener('click',utils.bind(this.editLabel,this),false);
     this.source.net.contents.appendChild(this.l);
     // this.updateView();
