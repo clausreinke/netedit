@@ -207,6 +207,7 @@ function Net(id,width,height) {
   this.svgDiv.addEventListener(utils.pointerEvents.move,utils.bind(this.mousemoveHandler,this),false);
   this.svgDiv.addEventListener(utils.pointerEvents.end
                               ,function(event){
+                                if (event.target.tagName!="svg") return;
                                 event.preventDefault();
                                 debug.messagePre("Net.mouseup");
                                 return this.modeHandler(this.cursor.mode)
@@ -404,8 +405,9 @@ Net.prototype.client2canvas = function (event) {
  * @param event
  */
 Net.prototype.clickHandler = function (event) {
-  if (!event.target instanceof HTMLSelectElement)
-    event.preventDefault();
+  if (event.target.tagName!="svg") return;
+//  if (!event.target instanceof HTMLSelectElement)
+//    event.preventDefault();
   debug.messagePre("Net.clickHandler");
   // message('Net.clickHandler '+this.cursor.mode);
   var p = this.client2canvas(event);

@@ -69,6 +69,7 @@ Node.prototype.rename = function(event) {
  */
 Node.prototype.mousedownHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
   debug.messagePre("Node.mousedown");
   if (this.net.selection) return true; // don't add second set of event handlers
   if (this.net.cursor.mode==='m') {
@@ -106,6 +107,7 @@ Node.prototype.mousedownHandler = function(event) {
  */
 Node.prototype.mousemoveHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
   debug.messagePre("Node.mousemove");
   var p = this.net.client2canvas(event);
   // debug.message(this.nodeType+'.mousemoveHandler '+p);
@@ -124,6 +126,7 @@ Node.prototype.mousemoveHandler = function(event) {
  */
 Node.prototype.newArcHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
   // var p = this.net.client2canvas(event);
   // debug.message(this.nodeType+'.newArcHandler '+p);
   this.net.selection.updateView();
@@ -140,6 +143,7 @@ Node.prototype.newArcHandler = function(event) {
  */
 Node.prototype.mouseupHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
   debug.messagePre("Node.mouseup");
   if ((this.net.cursor.mode==='a')
     &&(this.net.selection instanceof Arc)) {
@@ -474,6 +478,7 @@ Transition.prototype.connectorFor = function(pos) {
  */
 Transition.prototype.mousedownHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
   this.t.setAttributeNS(null,'stroke','green');
   return Node.prototype.mousedownHandler.call(this,event);
 }
@@ -673,6 +678,7 @@ Arc.prototype.findPointIndex = function(pos) {
  */
 Arc.prototype.clickHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
   debug.messagePre("Arc.clickHandler");
   // debug.message("Arc.clickHandler "+this.source.id+'->'+this.target.id);
   var p = this.source.net.client2canvas(event);
@@ -701,10 +707,12 @@ Arc.prototype.clickHandler = function(event) {
  */
 Arc.prototype.mousedownHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
+
   var p = this.source.net.client2canvas(event);
   var pos = new vector.Pos(p.x,p.y);
   if (this.source.net.cursor.mode==='m') {
-    debug.message('mousedown');
+    debug.message('Arc.mousedown');
     var i = this.findPointIndex(pos);
     if (i>=0) {
       debug.message(i);
@@ -736,6 +744,8 @@ Arc.prototype.mousedownHandler = function(event) {
 // TODO: this.movedPoint can be null??
 Arc.prototype.mousemoveHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
+  debug.message('Arc.mousemove');
   var p = this.source.net.client2canvas(event);
   this.movedPoint.x = p.x; 
   this.movedPoint.y = p.y; 
@@ -750,6 +760,8 @@ Arc.prototype.mousemoveHandler = function(event) {
  */
 Arc.prototype.mouseupHandler = function(event) {
   event.preventDefault();
+  event.stopPropagation();
+  debug.message('Arc.mouseup');
   this.a.setAttributeNS(null,'stroke','black'); 
   for (var l in this.listeners) 
     // safari 5.0 won't listen to events on svg
