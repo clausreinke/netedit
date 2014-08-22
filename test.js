@@ -290,7 +290,7 @@ body.sendKeys("a").then(function(){
         report.test('cursor style is "move":',style==='cursor: move;');
       });
 
-      // BUG: arc labels don't follow node/midpoint moves
+      // TODO: check move outcomes
 
       // move the nodes
       driver.actions()
@@ -328,7 +328,7 @@ body.sendKeys("a").then(function(){
             .mouseMove(svgDiv,{x:200,y:100})
             .mouseUp()
             .perform();
-driver.wait(function(){return false},5000,'done waiting');
+
       driver.actions()
             .mouseMove(svgDiv,{x:200,y:170})
             .mouseDown()

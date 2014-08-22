@@ -584,6 +584,8 @@ Arc.prototype.addLabel = function(label,pos) {
   if (label!=null) {
     this.label    = label;
     this.labelPos = this.a.getPointAtLength(this.a.getTotalLength()/2);
+    this.labelPos.x += 5;
+    this.labelPos.y -= 5;
     if (this.l) this.source.net.contents.removeChild(this.l);
     this.l = utils.elementNS(utils.svgNS,'text'
               ,{'class':'arclabel'
@@ -595,7 +597,7 @@ Arc.prototype.addLabel = function(label,pos) {
                }
               ,[document.createTextNode(this.label)]);
     this.l.addEventListener('click',utils.bind(this.editLabel,this),false);
-    this.source.net.contents.appendChild(this.l);
+    this.source.net.contents.insertBefore(this.l,this.a);
     // this.updateView();
   }
 }
