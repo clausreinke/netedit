@@ -77,6 +77,17 @@ function testElement(root,by) {
   return el;
 }
 
+function testElementDeleted(root,by) {
+  var el = root.findElement(by);
+  el.then(function() {
+      report.failure("! not deleted:",by);
+    })
+    .then(null,function(){
+      report.success(". deleted:",by);
+    });
+  return el;
+}
+
 function testLabel(cls,label,by) {
   var lastElement = driver.findElement(by)
   lastElement.then(function(el){
@@ -135,6 +146,7 @@ body.sendKeys("t").then(function(){
   var prompt = driver.switchTo().alert();
   prompt.sendKeys("T0");
   prompt.accept();
+  driver.actions().mouseUp().perform(); // ff needs this, chrome doesn't
   testElement(svgDiv,webdriver.By.css('svg .transition#T0'));
   testLabel('label','T0',webdriver.By.css('svg #contents :nth-last-child(2)'));
 
@@ -145,6 +157,7 @@ body.sendKeys("t").then(function(){
   var prompt = driver.switchTo().alert();
   prompt.sendKeys("T1");
   prompt.accept();
+  driver.actions().mouseUp().perform(); // ff needs this, chrome doesn't
   testElement(svgDiv,webdriver.By.css('svg .transition#T1'));
   testLabel('label','T1',webdriver.By.css('svg #contents :nth-last-child(2)'));
 });
@@ -160,6 +173,7 @@ body.sendKeys("p").then(function(){
   var prompt = driver.switchTo().alert();
   prompt.sendKeys("P0");
   prompt.accept();
+  driver.actions().mouseUp().perform(); // ff needs this, chrome doesn't
   testElement(svgDiv,webdriver.By.css('svg .place#P0'));
   testLabel('label','P0',webdriver.By.css('svg #contents :nth-last-child(2)'));
 
@@ -170,6 +184,7 @@ body.sendKeys("p").then(function(){
   var prompt = driver.switchTo().alert();
   prompt.sendKeys("P1");
   prompt.accept();
+  driver.actions().mouseUp().perform(); // ff needs this, chrome doesn't
   testElement(svgDiv,webdriver.By.css('svg .place#P1'));
   testLabel('label','P1',webdriver.By.css('svg #contents :nth-last-child(2)'));
 });
@@ -178,68 +193,37 @@ body.sendKeys("p").then(function(){
 body.sendKeys("a").then(function(){
   // TODO: no mode cursor?
   //       add label mode?
-  //       how to test for individual arcs/midpoints?
   //       geometry tests?
 
-  driver.actions()
-        .mouseMove(svgDiv,{x:100,y:100})
-        .mouseDown()
-        .mouseMove(svgDiv,{x:200,y:100})
-        .mouseUp()
-        .perform();
-  driver.findElements(webdriver.By.css('svg .arc'))
-    .then(function(arcs){report.test("created 1 arc: ",arcs.length===1)});
+  function createArc(id,source,target,midpoint) {
+    driver.actions()
+          .mouseMove(svgDiv,source)
+          .mouseDown()
+          .mouseMove(svgDiv,target)
+          .mouseUp()
+          .perform();
+    var arc = testElement(svgDiv,webdriver.By.css('svg .arc#'+id));
+    arc.getAttribute('d').then(function(path){
+      report.test('arc path has source and target:'
+                 ,/^M[^ML]*L[^ML]*$/.test(path));
+    });
 
     // add midpoint
     driver.actions()
-          .mouseMove(svgDiv,{x:170,y:100})
-          .click()
+          .mouseMove(svgDiv,midpoint)
+          .mouseDown().mouseUp() // ff needs this instead of click
+          //.click()
           .perform();
+    arc.getAttribute('d').then(function(path){
+      report.test('arc path has source, midpoint and target:'
+                 ,/^M[^ML]*L[^ML]*L[^ML]*$/.test(path));
+    });
+  }
 
-  driver.actions()
-        .mouseMove(svgDiv,{x:200,y:100})
-        .mouseDown()
-        .mouseMove(svgDiv,{x:200,y:200})
-        .mouseUp()
-        .perform();
-  driver.findElements(webdriver.By.css('svg .arc'))
-    .then(function(arcs){report.test("created 2 arc: ",arcs.length===2)});
-
-    // add midpoint
-    driver.actions()
-          .mouseMove(svgDiv,{x:200,y:170})
-          .click()
-          .perform();
-
-  driver.actions()
-        .mouseMove(svgDiv,{x:200,y:200})
-        .mouseDown()
-        .mouseMove(svgDiv,{x:100,y:200})
-        .mouseUp()
-        .perform();
-  driver.findElements(webdriver.By.css('svg .arc'))
-    .then(function(arcs){report.test("created 3 arc: ",arcs.length===3)});
-
-    // add midpoint
-    driver.actions()
-          .mouseMove(svgDiv,{x:130,y:200})
-          .click()
-          .perform();
-
-  driver.actions()
-        .mouseMove(svgDiv,{x:100,y:200})
-        .mouseDown()
-        .mouseMove(svgDiv,{x:100,y:100})
-        .mouseUp()
-        .perform();
-  driver.findElements(webdriver.By.css('svg .arc'))
-    .then(function(arcs){report.test("created 4 arc: ",arcs.length===4)});
-
-    // add midpoint
-    driver.actions()
-          .mouseMove(svgDiv,{x:100,y:130})
-          .click()
-          .perform();
+  createArc('arc1',{x:100,y:100},{x:200,y:100},{x:170,y:100});
+  createArc('arc3',{x:200,y:100},{x:200,y:200},{x:200,y:170});
+  createArc('arc5',{x:200,y:200},{x:100,y:200},{x:130,y:200});
+  createArc('arc7',{x:100,y:200},{x:100,y:100},{x:100,y:130});
 
   // arc label creation mode
   body.sendKeys("l").then(function(){
@@ -247,41 +231,22 @@ body.sendKeys("a").then(function(){
     //       add label mode?
     //       geometry tests?
 
-    driver.actions()
-          .mouseMove(svgDiv,{x:150,y:100})
-          .click()
-          .perform();
-    var prompt = driver.switchTo().alert();
-    prompt.sendKeys("a1");
-    prompt.accept();
-    testLabel('arclabel','a1',webdriver.By.css('svg #contents :last-child'));
+    function createArcLabel(label,pos) {
+      driver.actions()
+            .mouseMove(svgDiv,pos)
+            .mouseDown().mouseUp() // ff needs this instead of click
+            // .click()
+            .perform();
+      var prompt = driver.switchTo().alert();
+      prompt.sendKeys(label);
+      prompt.accept();
+      testLabel('arclabel',label,webdriver.By.css('svg #contents text:last-of-type'));
+    }
 
-    driver.actions()
-          .mouseMove(svgDiv,{x:200,y:150})
-          .click()
-          .perform();
-    var prompt = driver.switchTo().alert();
-    prompt.sendKeys("a2");
-    prompt.accept();
-    testLabel('arclabel','a2',webdriver.By.css('svg #contents :last-child'));
-
-    driver.actions()
-          .mouseMove(svgDiv,{x:150,y:200})
-          .click()
-          .perform();
-    var prompt = driver.switchTo().alert();
-    prompt.sendKeys("a3");
-    prompt.accept();
-    testLabel('arclabel','a3',webdriver.By.css('svg #contents :last-child'));
-
-    driver.actions()
-          .mouseMove(svgDiv,{x:100,y:150})
-          .click()
-          .perform();
-    var prompt = driver.switchTo().alert();
-    prompt.sendKeys("a4");
-    prompt.accept();
-    testLabel('arclabel','a4',webdriver.By.css('svg #contents :last-child'));
+    createArcLabel('a1',{x:150,y:100});
+    createArcLabel('a2',{x:200,y:150});
+    createArcLabel('a3',{x:150,y:200});
+    createArcLabel('a4',{x:100,y:150});
 
     // move mode
     body.sendKeys("m").then(function(){
@@ -290,67 +255,38 @@ body.sendKeys("a").then(function(){
         report.test('cursor style is "move":',style==='cursor: move;');
       });
 
-      // TODO: check move outcomes
+      function moveNode(from,to) {
+        // TODO: check move outcomes
+        driver.actions()
+              .mouseMove(svgDiv,from)
+              .mouseDown()
+              .mouseMove(svgDiv,to)
+              .mouseUp()
+              .perform();
+      }
 
       // move the nodes
-      driver.actions()
-            .mouseMove(svgDiv,{x:200,y:100})
-            .mouseDown()
-            .mouseMove(svgDiv,{x:200,y:150})
-            .mouseUp()
-            .perform();
+      moveNode({x:200,y:100},{x:200,y:150});
+      moveNode({x:200,y:200},{x:150,y:200});
+      moveNode({x:100,y:200},{x:100,y:150});
+      moveNode({x:100,y:100},{x:150,y:100});
 
-      driver.actions()
-            .mouseMove(svgDiv,{x:200,y:200})
-            .mouseDown()
-            .mouseMove(svgDiv,{x:150,y:200})
-            .mouseUp()
-            .perform();
-
-      driver.actions()
-            .mouseMove(svgDiv,{x:100,y:200})
-            .mouseDown()
-            .mouseMove(svgDiv,{x:100,y:150})
-            .mouseUp()
-            .perform();
-
-      driver.actions()
-            .mouseMove(svgDiv,{x:100,y:100})
-            .mouseDown()
-            .mouseMove(svgDiv,{x:150,y:100})
-            .mouseUp()
-            .perform();
+      function moveArcMidpoint(from,to){
+        // TODO: check move outcomes
+        driver.actions()
+              .mouseMove(svgDiv,from)
+              .mouseDown()
+              .mouseMove(svgDiv,to)
+              .mouseUp()
+              .perform();
+      }
 
       // move arc midpoints
-      driver.actions()
-            .mouseMove(svgDiv,{x:170,y:100})
-            .mouseDown()
-            .mouseMove(svgDiv,{x:200,y:100})
-            .mouseUp()
-            .perform();
+      moveArcMidpoint({x:170,y:100},{x:200,y:100});
+      moveArcMidpoint({x:200,y:170},{x:200,y:200});
+      moveArcMidpoint({x:130,y:200},{x:100,y:200});
+      moveArcMidpoint({x:100,y:130},{x:100,y:100});
 
-      driver.actions()
-            .mouseMove(svgDiv,{x:200,y:170})
-            .mouseDown()
-            .mouseMove(svgDiv,{x:200,y:200})
-            .mouseUp()
-            .perform();
-
-      driver.actions()
-            .mouseMove(svgDiv,{x:130,y:200})
-            .mouseDown()
-            .mouseMove(svgDiv,{x:100,y:200})
-            .mouseUp()
-            .perform();
-
-      driver.actions()
-            .mouseMove(svgDiv,{x:100,y:130})
-            .mouseDown()
-            .mouseMove(svgDiv,{x:100,y:100})
-            .mouseUp()
-            .perform();
-
-/*
       // delete mode
       body.sendKeys("d").then(function(){
         var svg = driver.findElement(webdriver.By.css('svg'));
@@ -361,22 +297,38 @@ body.sendKeys("a").then(function(){
         // delete arc midpoint
         driver.actions()
               .mouseMove(svgDiv,{x:200,y:100})
-              .click()
+              .mouseDown().mouseUp() // ff needs this instead of click
+              // .click()
               .perform();
 
-        // delete place
+        var arc = driver.findElement(webdriver.By.css('svg .arc#arc1'));
+        arc.getAttribute('d').then(function(path){
+          report.test('arc1 path midpoint deleted:'
+                     ,/^M[^ML]*L[^ML]*$/.test(path));
+        });
+
+        // delete place (and connected arcs)
         driver.actions()
-              .mouseMove(svgDiv,{x:200,y:150})
-              .click()
+              .mouseMove(svgDiv,{x:100,y:150})
+              .mouseDown().mouseUp() // ff needs this instead of click
+              // .click()
+              .perform();
+        testElementDeleted(svgDiv,webdriver.By.css('svg .place#P1'))
+        testElementDeleted(svgDiv,webdriver.By.css('svg .arc#arc7'))
+        testElementDeleted(svgDiv,webdriver.By.css('svg .arc#arc5'))
+
+        // delete transition (and connected arc)
+        driver.actions()
+              .mouseMove(svgDiv,{x:150,y:200})
+              .mouseDown().mouseUp() // ff needs this instead of click
+              // .click()
               .perform();
 
-        // delete transition
-        driver.actions()
-              .mouseMove(svgDiv,{x:150,y:100})
-              .click()
-              .perform();
+        testElementDeleted(svgDiv,webdriver.By.css('svg .transition#T1'))
+        testElementDeleted(svgDiv,webdriver.By.css('svg .arc#arc3'))
+
+        // TODO: delete arc
       });
-*/
     });
   });
 });
