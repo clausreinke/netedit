@@ -255,37 +255,50 @@ body.sendKeys("a").then(function(){
         report.test('cursor style is "move":',style==='cursor: move;');
       });
 
-      function moveNode(from,to) {
-        // TODO: check move outcomes
+      function moveNode(id,x,y,from,to) {
+        var node = driver.findElement(webdriver.By.css('#'+id));
+        var px,py;
+        node.getAttribute(x).then(function(x){px=x});
+        node.getAttribute(y).then(function(y){py=y});
         driver.actions()
               .mouseMove(svgDiv,from)
               .mouseDown()
               .mouseMove(svgDiv,to)
               .mouseUp()
               .perform();
+        webdriver.promise.all([node.getAttribute(x),node.getAttribute(y)])
+          .then(function(xy){report.test('node '+id+' moved:',(px!==xy[0])||(py!==xy[1]))});
       }
 
       // move the nodes
-      moveNode({x:200,y:100},{x:200,y:150});
-      moveNode({x:200,y:200},{x:150,y:200});
-      moveNode({x:100,y:200},{x:100,y:150});
-      moveNode({x:100,y:100},{x:150,y:100});
+      moveNode('P0','cx','cy',{x:200,y:100},{x:200,y:150});
+      moveNode('T1','x','y',{x:200,y:200},{x:150,y:200});
+      moveNode('P1','cx','cy',{x:100,y:200},{x:100,y:150});
+      moveNode('T0','x','y',{x:100,y:100},{x:150,y:100});
 
-      function moveArcMidpoint(from,to){
-        // TODO: check move outcomes
+      function moveArcMidpoint(id,from,to){
+        var arc = driver.findElement(webdriver.By.css('svg .arc#'+id));
+        var pos;
+        arc.getAttribute('d').then(function(path){
+          pos = path.match(/^M[^ML]*(L[^ML]*)L[^ML]*$/)[1];
+        });
         driver.actions()
               .mouseMove(svgDiv,from)
               .mouseDown()
               .mouseMove(svgDiv,to)
               .mouseUp()
               .perform();
+        arc.getAttribute('d').then(function(path){
+          report.test('midpoint of arc '+id+' moved:'
+                     ,pos !== path.match(/^M[^ML]*(L[^ML]*)L[^ML]*$/)[1]);
+        });
       }
 
       // move arc midpoints
-      moveArcMidpoint({x:170,y:100},{x:200,y:100});
-      moveArcMidpoint({x:200,y:170},{x:200,y:200});
-      moveArcMidpoint({x:130,y:200},{x:100,y:200});
-      moveArcMidpoint({x:100,y:130},{x:100,y:100});
+      moveArcMidpoint('arc1',{x:170,y:100},{x:200,y:100});
+      moveArcMidpoint('arc3',{x:200,y:170},{x:200,y:200});
+      moveArcMidpoint('arc5',{x:130,y:200},{x:100,y:200});
+      moveArcMidpoint('arc7',{x:100,y:130},{x:100,y:100});
 
       // delete mode
       body.sendKeys("d").then(function(){
@@ -296,12 +309,12 @@ body.sendKeys("a").then(function(){
 
         // delete arc midpoint
         driver.actions()
-              .mouseMove(svgDiv,{x:200,y:100})
+              .mouseMove(svgDiv,{x:200,y:200})
               .mouseDown().mouseUp() // ff needs this instead of click
               // .click()
               .perform();
 
-        var arc = driver.findElement(webdriver.By.css('svg .arc#arc1'));
+        var arc = driver.findElement(webdriver.By.css('svg .arc#arc3'));
         arc.getAttribute('d').then(function(path){
           report.test('arc1 path midpoint deleted:'
                      ,/^M[^ML]*L[^ML]*$/.test(path));
@@ -328,6 +341,13 @@ body.sendKeys("a").then(function(){
         testElementDeleted(svgDiv,webdriver.By.css('svg .arc#arc3'))
 
         // TODO: delete arc
+        driver.actions()
+              .mouseMove(svgDiv,{x:180,y:100})
+              .mouseDown().mouseUp() // ff needs this instead of click
+              // .click()
+              .perform();
+        testElementDeleted(svgDiv,webdriver.By.css('svg .arc#arc1'))
+
       });
     });
   });
